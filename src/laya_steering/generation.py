@@ -96,7 +96,9 @@ construct a classifier and are not a test set. Use only the allowed labels. Retu
 """
     response = provider.generate_json(prompt, EXAMPLES_SCHEMA, seed)
     payload = _ExamplesPayload.model_validate(response.content)
-    rows = _rows(payload.examples, task, "specialization", "spec", provider.model)
+    rows = _normalize_generated_count(
+        _rows(payload.examples, task, "specialization", "spec", provider.model), task, count
+    )
     _validate_generated(rows, task, count)
     return rows, _generation_record(response, "specialization")
 
@@ -128,7 +130,9 @@ allowed labels. Inputs must be unique. Return data, not code.
 """
         response = provider.generate_json(prompt, EXAMPLES_SCHEMA, seed + 1009 * (offset + 1))
         payload = _ExamplesPayload.model_validate(response.content)
-        part = _rows(payload.examples, task, split, split[:4], provider.model)
+        part = _normalize_generated_count(
+            _rows(payload.examples, task, split, split[:4], provider.model), task, count
+        )
         _validate_generated(part, task, count)
         rows.extend(part)
         records.append(_generation_record(response, "benchmark"))
@@ -235,6 +239,55 @@ def _validate_generated(rows: list[Example], task: TaskSpec, expected: int) -> N
             raise ValueError("every paraphrase pair_id must identify at least two examples")
         if any(len({row.label for row in values}) != 1 for values in pairs.values()):
             raise ValueError("paraphrases in a pair must have the same label")
+
+
+def _normalize_generated_count(rows: list[Example], task: TaskSpec, expected: int) -> list[Example]:
+    """Accept provider over-generation while keeping a balanced deterministic subset."""
+    if len(rows) < expected:
+        raise ValueError(f"provider returned only {len(rows)} examples, expected {expected}")
+    if len(rows) == expected:
+        return rows
+
+    labels = set(task.decision.labels)
+    unknown = {row.label for row in rows} - labels
+    if unknown:
+        raise ValueError(f"provider used unknown labels: {sorted(unknown)}")
+    if len({row.content_hash for row in rows}) != len(rows):
+        raise ValueError("provider returned duplicate inputs")
+
+    if rows and rows[0].split == "paraphrase":
+        groups: dict[str, list[Example]] = {}
+        for row in rows:
+            if not row.pair_id:
+                raise ValueError("every paraphrase example requires a pair_id")
+            groups.setdefault(row.pair_id, []).append(row)
+        units = list(groups.values())
+    else:
+        units = [[row] for row in rows]
+
+    by_label = {label: [] for label in task.decision.labels}
+    for unit in units:
+        if len({row.label for row in unit}) != 1:
+            raise ValueError("paraphrases in a pair must have the same label")
+        by_label[unit[0].label].append(unit)
+
+    selected: list[Example] = []
+    while len(selected) < expected:
+        progressed = False
+        for label in task.decision.labels:
+            if not by_label[label]:
+                continue
+            unit = by_label[label].pop(0)
+            if len(selected) + len(unit) <= expected:
+                selected.extend(unit)
+                progressed = True
+            if len(selected) == expected:
+                return selected
+        if not progressed:
+            break
+    raise ValueError(
+        f"provider returned {len(rows)} examples, but paired groups cannot be reduced to {expected}"
+    )
 
 
 def _generation_record(response: Any, role: str) -> GenerationRecord:

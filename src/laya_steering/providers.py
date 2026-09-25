@@ -119,7 +119,7 @@ class OpenAICompatibleProvider(LLMProvider):
             path.write_text(json.dumps(raw, indent=2, ensure_ascii=False, sort_keys=True) + "\n")
         try:
             content_raw = raw["choices"][0]["message"]["content"]
-            content = json.loads(content_raw) if isinstance(content_raw, str) else content_raw
+            content = _decode_json_content(content_raw)
         except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
             raise ValueError("provider response did not contain valid structured JSON") from exc
         return ProviderResponse(
@@ -130,6 +130,26 @@ class OpenAICompatibleProvider(LLMProvider):
             prompt=prompt,
             cache_key=key,
         )
+
+
+def _decode_json_content(content: Any) -> Any:
+    if not isinstance(content, str):
+        return content
+    text = content.strip()
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start, end = text.find("{"), text.rfind("}")
+        if start >= 0 and end > start:
+            return json.loads(text[start : end + 1])
+        raise
 
 
 class StaticProvider(LLMProvider):
