@@ -8,9 +8,9 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .io import save_suite
+from .io import SPLITS, save_suite
 from .providers import LLMProvider
-from .schemas import Example, GenerationRecord, SuiteManifest, TaskSpec
+from .schemas import Example, GenerationRecord, SuiteManifest, TaskSpec, normalize_text
 
 
 class _GeneratedExample(BaseModel):
@@ -188,14 +188,40 @@ def build_suite(
         rows.extend(spec + tests)
         spec_records.extend((task_record, spec_record))
         benchmark_records.append(bench_record)
+    rows, removed = remove_generated_leakage(rows)
     manifest = SuiteManifest(
         name=name,
         tasks=[x.name for x in tasks],
         seed=seed,
         specialization_generation=_merge_records(spec_records, "specialization"),
         benchmark_generation=_merge_records(benchmark_records, "benchmark"),
+        metadata={"removed_leakage_collisions": removed},
     )
     save_suite(output, manifest, tasks, rows)
+
+
+def remove_generated_leakage(rows: list[Example]) -> tuple[list[Example], int]:
+    """Drop later generated collisions while preserving split priority and paraphrase pairs."""
+    seen: set[str] = set()
+    kept: list[Example] = []
+    removed = 0
+    for split in SPLITS:
+        split_rows = [row for row in rows if row.split == split]
+        if split == "paraphrase":
+            grouped: dict[tuple[str, str], list[Example]] = {}
+            for row in split_rows:
+                grouped.setdefault((row.task_name, row.pair_id or row.id), []).append(row)
+            units = list(grouped.values())
+        else:
+            units = [[row] for row in split_rows]
+        for unit in units:
+            keys = {normalize_text(row.input) for row in unit}
+            if keys & seen or len(keys) != len(unit):
+                removed += len(unit)
+                continue
+            kept.extend(unit)
+            seen.update(keys)
+    return kept, removed
 
 
 def _rows(

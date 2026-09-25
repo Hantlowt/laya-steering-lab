@@ -16,7 +16,12 @@ from pydantic import BaseModel, ConfigDict, Field
 from .artifact import export_specialization, load_saved_fitted
 from .backends import LayaBackend, create_backend
 from .evaluation import benchmark_suite
-from .generation import generate_benchmark_splits, generate_specialization, infer_task
+from .generation import (
+    generate_benchmark_splits,
+    generate_specialization,
+    infer_task,
+    remove_generated_leakage,
+)
 from .io import load_suite, save_suite
 from .providers import OpenAICompatibleProvider
 from .schemas import Example, SuiteManifest, TaskSpec
@@ -267,16 +272,20 @@ class StudioService:
             )
             update(82, "Leakage check", "Checking duplicates and split separation.")
             draft_id = f"{request.task.name}-{uuid.uuid4().hex[:8]}"
+            examples, removed = remove_generated_leakage(specialization + tests)
             manifest = SuiteManifest(
                 name=draft_id,
                 tasks=[request.task.name],
                 seed=request.seed,
                 specialization_generation=spec_record,
                 benchmark_generation=benchmark_record,
-                metadata={"created_with": "laya-studio"},
+                metadata={
+                    "created_with": "laya-studio",
+                    "removed_leakage_collisions": removed,
+                },
             )
             path = self.drafts / draft_id
-            save_suite(path, manifest, [request.task], specialization + tests)
+            save_suite(path, manifest, [request.task], examples)
             _, _, splits = load_suite(path)
             update(95, "Ready for review", "The examples can now be edited.")
             return {
