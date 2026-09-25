@@ -1,0 +1,37 @@
+{
+  "artifact": {
+    "arrays": [],
+    "decision_component": "laya_head",
+    "labels": [
+      "REDUCE",
+      "SHIFT",
+      "NO_ACTION"
+    ],
+    "params": {},
+    "strategy": "baseline"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "NO_ACTION": "leave operation unchanged",
+        "REDUCE": "lower consumption now",
+        "SHIFT": "defer flexible work"
+      },
+      "labels": [
+        "REDUCE",
+        "SHIFT",
+        "NO_ACTION"
+      ],
+      "question": "Choose an energy-management response to a household condition.",
+      "type": "choice"
+    },
+    "description": "Choose an energy-management response to a household condition.",
+    "domain": "smart_home",
+    "metadata": {},
+    "name": "energy_action",
+    "negative_concepts": [],
+    "policy": "Choose an energy-management response to a household condition.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

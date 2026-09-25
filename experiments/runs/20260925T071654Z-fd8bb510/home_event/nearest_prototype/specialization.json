@@ -1,0 +1,45 @@
+{
+  "artifact": {
+    "arrays": [
+      "example_embeddings",
+      "example_labels",
+      "prototypes"
+    ],
+    "decision_component": "embedding_classifier",
+    "labels": [
+      "NOTIFY",
+      "AUTOMATE",
+      "IGNORE"
+    ],
+    "params": {
+      "mode": "mean",
+      "temperature": 0.2,
+      "top_k": 3
+    },
+    "strategy": "nearest_prototype"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "AUTOMATE": "safe predefined action",
+        "IGNORE": "benign noise",
+        "NOTIFY": "human awareness is needed"
+      },
+      "labels": [
+        "NOTIFY",
+        "AUTOMATE",
+        "IGNORE"
+      ],
+      "question": "Choose how a smart-home controller should handle an event.",
+      "type": "choice"
+    },
+    "description": "Choose how a smart-home controller should handle an event.",
+    "domain": "smart_home",
+    "metadata": {},
+    "name": "home_event",
+    "negative_concepts": [],
+    "policy": "Choose how a smart-home controller should handle an event.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

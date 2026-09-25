@@ -1,0 +1,43 @@
+{
+  "artifact": {
+    "arrays": [
+      "prototypes",
+      "transform"
+    ],
+    "decision_component": "embedding_classifier",
+    "labels": [
+      "NETWORK",
+      "STORAGE",
+      "AUTH"
+    ],
+    "params": {
+      "ridge": 1.0,
+      "temperature": 0.2
+    },
+    "strategy": "residual_embedding_transform"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "AUTH": "credentials and authorization",
+        "NETWORK": "connectivity and DNS",
+        "STORAGE": "disks, databases, and persistence"
+      },
+      "labels": [
+        "NETWORK",
+        "STORAGE",
+        "AUTH"
+      ],
+      "question": "Route an infrastructure event to the owning subsystem.",
+      "type": "choice"
+    },
+    "description": "Route an infrastructure event to the owning subsystem.",
+    "domain": "operations_logs",
+    "metadata": {},
+    "name": "log_subsystem",
+    "negative_concepts": [],
+    "policy": "Route an infrastructure event to the owning subsystem.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

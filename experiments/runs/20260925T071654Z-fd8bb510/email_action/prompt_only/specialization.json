@@ -1,0 +1,39 @@
+{
+  "artifact": {
+    "arrays": [],
+    "decision_component": "laya_head",
+    "labels": [
+      "REPLY",
+      "ARCHIVE",
+      "ESCALATE"
+    ],
+    "params": {
+      "rewritten_instructions": "Choose the operational action for an incoming business email.\nApply this policy exactly. REPLY: needs a routine response; ARCHIVE: informational or unsolicited; ESCALATE: requires authority or urgent handling. Resolve boundary cases using the class definitions, not label position."
+    },
+    "strategy": "prompt_only"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "ARCHIVE": "informational or unsolicited",
+        "ESCALATE": "requires authority or urgent handling",
+        "REPLY": "needs a routine response"
+      },
+      "labels": [
+        "REPLY",
+        "ARCHIVE",
+        "ESCALATE"
+      ],
+      "question": "Choose the operational action for an incoming business email.",
+      "type": "choice"
+    },
+    "description": "Choose the operational action for an incoming business email.",
+    "domain": "email",
+    "metadata": {},
+    "name": "email_action",
+    "negative_concepts": [],
+    "policy": "Choose the operational action for an incoming business email.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

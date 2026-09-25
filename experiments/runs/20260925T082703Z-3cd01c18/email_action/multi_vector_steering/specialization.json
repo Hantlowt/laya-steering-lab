@@ -1,0 +1,43 @@
+{
+  "artifact": {
+    "arrays": [
+      "owners",
+      "vectors"
+    ],
+    "decision_component": "embedding_classifier",
+    "labels": [
+      "REPLY",
+      "ARCHIVE",
+      "ESCALATE"
+    ],
+    "params": {
+      "temperature": 0.2,
+      "vectors_per_class": 2
+    },
+    "strategy": "multi_vector_steering"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "ARCHIVE": "informational or unsolicited",
+        "ESCALATE": "requires authority or urgent handling",
+        "REPLY": "needs a routine response"
+      },
+      "labels": [
+        "REPLY",
+        "ARCHIVE",
+        "ESCALATE"
+      ],
+      "question": "Choose the operational action for an incoming business email.",
+      "type": "choice"
+    },
+    "description": "Choose the operational action for an incoming business email.",
+    "domain": "email",
+    "metadata": {},
+    "name": "email_action",
+    "negative_concepts": [],
+    "policy": "Choose the operational action for an incoming business email.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "artifact": {
+    "arrays": [],
+    "decision_component": "laya_head",
+    "labels": [
+      "NOTIFY",
+      "AUTOMATE",
+      "IGNORE"
+    ],
+    "params": {},
+    "strategy": "baseline"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "AUTOMATE": "safe predefined action",
+        "IGNORE": "benign noise",
+        "NOTIFY": "human awareness is needed"
+      },
+      "labels": [
+        "NOTIFY",
+        "AUTOMATE",
+        "IGNORE"
+      ],
+      "question": "Choose how a smart-home controller should handle an event.",
+      "type": "choice"
+    },
+    "description": "Choose how a smart-home controller should handle an event.",
+    "domain": "smart_home",
+    "metadata": {},
+    "name": "home_event",
+    "negative_concepts": [],
+    "policy": "Choose how a smart-home controller should handle an event.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

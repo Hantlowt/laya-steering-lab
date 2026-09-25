@@ -1,0 +1,39 @@
+{
+  "artifact": {
+    "arrays": [],
+    "decision_component": "pairwise_laya_head",
+    "labels": [
+      "REPLY",
+      "ARCHIVE",
+      "ESCALATE"
+    ],
+    "params": {
+      "aggregation": "Copeland"
+    },
+    "strategy": "pairwise_ranking"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "ARCHIVE": "informational or unsolicited",
+        "ESCALATE": "requires authority or urgent handling",
+        "REPLY": "needs a routine response"
+      },
+      "labels": [
+        "REPLY",
+        "ARCHIVE",
+        "ESCALATE"
+      ],
+      "question": "Choose the operational action for an incoming business email.",
+      "type": "choice"
+    },
+    "description": "Choose the operational action for an incoming business email.",
+    "domain": "email",
+    "metadata": {},
+    "name": "email_action",
+    "negative_concepts": [],
+    "policy": "Choose the operational action for an incoming business email.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

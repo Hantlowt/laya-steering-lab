@@ -1,0 +1,14 @@
+# Known-good versions used for the checked-in smoke run and tests.
+# Install with: pip install -c requirements/constraints.txt -e '.[dev]'
+numpy==2.4.6
+pydantic==2.12.5
+PyYAML==6.0.3
+safetensors==0.8.0
+typer==0.26.3
+pytest==8.4.2
+pytest-cov==6.3.0
+ruff==0.16.9
+fastapi==0.136.1
+uvicorn==0.47.0
+laya==0.3.20
+laya-mlx==0.2.0; sys_platform == "darwin" and platform_machine == "arm64"

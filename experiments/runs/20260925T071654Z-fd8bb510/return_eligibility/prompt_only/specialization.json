@@ -1,0 +1,39 @@
+{
+  "artifact": {
+    "arrays": [],
+    "decision_component": "laya_head",
+    "labels": [
+      "ELIGIBLE",
+      "INELIGIBLE",
+      "REVIEW"
+    ],
+    "params": {
+      "rewritten_instructions": "Decide whether a merchandise return is allowed under policy.\nApply this policy exactly. ELIGIBLE: within policy; INELIGIBLE: clearly outside policy; REVIEW: exception or insufficient evidence. Resolve boundary cases using the class definitions, not label position."
+    },
+    "strategy": "prompt_only"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "ELIGIBLE": "within policy",
+        "INELIGIBLE": "clearly outside policy",
+        "REVIEW": "exception or insufficient evidence"
+      },
+      "labels": [
+        "ELIGIBLE",
+        "INELIGIBLE",
+        "REVIEW"
+      ],
+      "question": "Decide whether a merchandise return is allowed under policy.",
+      "type": "choice"
+    },
+    "description": "Decide whether a merchandise return is allowed under policy.",
+    "domain": "ecommerce",
+    "metadata": {},
+    "name": "return_eligibility",
+    "negative_concepts": [],
+    "policy": "Decide whether a merchandise return is allowed under policy.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

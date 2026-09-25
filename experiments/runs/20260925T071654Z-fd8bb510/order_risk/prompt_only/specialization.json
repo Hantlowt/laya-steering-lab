@@ -1,0 +1,39 @@
+{
+  "artifact": {
+    "arrays": [],
+    "decision_component": "laya_head",
+    "labels": [
+      "ALLOW",
+      "REVIEW",
+      "BLOCK"
+    ],
+    "params": {
+      "rewritten_instructions": "Assess fraud risk for an online order.\nApply this policy exactly. ALLOW: ordinary low-risk purchase; REVIEW: suspicious but inconclusive; BLOCK: strong evidence of abuse. Resolve boundary cases using the class definitions, not label position."
+    },
+    "strategy": "prompt_only"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "ALLOW": "ordinary low-risk purchase",
+        "BLOCK": "strong evidence of abuse",
+        "REVIEW": "suspicious but inconclusive"
+      },
+      "labels": [
+        "ALLOW",
+        "REVIEW",
+        "BLOCK"
+      ],
+      "question": "Assess fraud risk for an online order.",
+      "type": "choice"
+    },
+    "description": "Assess fraud risk for an online order.",
+    "domain": "ecommerce",
+    "metadata": {},
+    "name": "order_risk",
+    "negative_concepts": [],
+    "policy": "Assess fraud risk for an online order.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

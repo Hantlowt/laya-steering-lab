@@ -1,0 +1,39 @@
+{
+  "artifact": {
+    "arrays": [],
+    "decision_component": "laya_head",
+    "labels": [
+      "PUBLIC",
+      "INTERNAL",
+      "CONFIDENTIAL"
+    ],
+    "params": {
+      "rewritten_instructions": "Classify the permitted disclosure level of an email.\nApply this policy exactly. PUBLIC: safe for public distribution; INTERNAL: company-only routine material; CONFIDENTIAL: secrets, personal data, or privileged material. Resolve boundary cases using the class definitions, not label position."
+    },
+    "strategy": "prompt_only"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "CONFIDENTIAL": "secrets, personal data, or privileged material",
+        "INTERNAL": "company-only routine material",
+        "PUBLIC": "safe for public distribution"
+      },
+      "labels": [
+        "PUBLIC",
+        "INTERNAL",
+        "CONFIDENTIAL"
+      ],
+      "question": "Classify the permitted disclosure level of an email.",
+      "type": "choice"
+    },
+    "description": "Classify the permitted disclosure level of an email.",
+    "domain": "email",
+    "metadata": {},
+    "name": "email_sensitivity",
+    "negative_concepts": [],
+    "policy": "Classify the permitted disclosure level of an email.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "benchmark_generation": {
+    "generated_at": "2026-09-25T07:16:54.407018+00:00",
+    "model": "none",
+    "prompt_sha256": "949af2678ececb328cc431442e076db481c19ec152bdff4bd8327788dcbe2ee7",
+    "provider": "human",
+    "role": "manual_fixture",
+    "seed": 17
+  },
+  "created_at": "2026-09-25T07:16:54.408290+00:00",
+  "format": "laya-benchmark-suite",
+  "format_version": 1,
+  "metadata": {
+    "note": "Human-authored CI fixture; use LLM-generated suites for research.",
+    "scientific_evidence": false
+  },
+  "name": "offline-smoke-v1",
+  "seed": 17,
+  "specialization_generation": {
+    "generated_at": "2026-09-25T07:16:54.407018+00:00",
+    "model": "none",
+    "prompt_sha256": "949af2678ececb328cc431442e076db481c19ec152bdff4bd8327788dcbe2ee7",
+    "provider": "human",
+    "role": "manual_fixture",
+    "seed": 17
+  },
+  "tasks": [
+    "support_priority",
+    "support_routing",
+    "email_action",
+    "email_sensitivity",
+    "log_severity",
+    "log_subsystem",
+    "return_eligibility",
+    "order_risk",
+    "home_event",
+    "energy_action"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "artifact": {
+    "arrays": [],
+    "decision_component": "laya_head",
+    "labels": [
+      "INFO",
+      "WARN",
+      "CRITICAL"
+    ],
+    "params": {},
+    "strategy": "baseline"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "CRITICAL": "active outage or data loss",
+        "INFO": "normal operation",
+        "WARN": "degradation needing attention"
+      },
+      "labels": [
+        "INFO",
+        "WARN",
+        "CRITICAL"
+      ],
+      "question": "Assign operational severity to a system event.",
+      "type": "choice"
+    },
+    "description": "Assign operational severity to a system event.",
+    "domain": "operations_logs",
+    "metadata": {},
+    "name": "log_severity",
+    "negative_concepts": [],
+    "policy": "Assign operational severity to a system event.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "artifact": {
+    "arrays": [
+      "example_embeddings",
+      "example_labels",
+      "prototypes"
+    ],
+    "decision_component": "embedding_classifier",
+    "labels": [
+      "BILLING",
+      "TECHNICAL",
+      "ACCOUNT"
+    ],
+    "params": {
+      "mode": "mean",
+      "temperature": 0.2,
+      "top_k": 3
+    },
+    "strategy": "nearest_prototype"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "ACCOUNT": "identity and access settings",
+        "BILLING": "payments and invoices",
+        "TECHNICAL": "product failures"
+      },
+      "labels": [
+        "BILLING",
+        "TECHNICAL",
+        "ACCOUNT"
+      ],
+      "question": "Route a customer request to the responsible support team.",
+      "type": "choice"
+    },
+    "description": "Route a customer request to the responsible support team.",
+    "domain": "customer_support",
+    "metadata": {},
+    "name": "support_routing",
+    "negative_concepts": [],
+    "policy": "Route a customer request to the responsible support team.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

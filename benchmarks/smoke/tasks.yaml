@@ -1,0 +1,191 @@
+tasks:
+- name: support_priority
+  description: Classify support tickets by whether immediate human intervention is
+    required.
+  domain: customer_support
+  decision:
+    type: choice
+    labels:
+    - URGENT
+    - NORMAL
+    question: Classify support tickets by whether immediate human intervention is
+      required.
+    class_descriptions:
+      URGENT: outage, security, or material financial harm
+      NORMAL: routine help without immediate harm
+  semantic_concepts: []
+  positive_concepts: []
+  negative_concepts: []
+  policy: Classify support tickets by whether immediate human intervention is required.
+  metadata: {}
+- name: support_routing
+  description: Route a customer request to the responsible support team.
+  domain: customer_support
+  decision:
+    type: choice
+    labels:
+    - BILLING
+    - TECHNICAL
+    - ACCOUNT
+    question: Route a customer request to the responsible support team.
+    class_descriptions:
+      BILLING: payments and invoices
+      TECHNICAL: product failures
+      ACCOUNT: identity and access settings
+  semantic_concepts: []
+  positive_concepts: []
+  negative_concepts: []
+  policy: Route a customer request to the responsible support team.
+  metadata: {}
+- name: email_action
+  description: Choose the operational action for an incoming business email.
+  domain: email
+  decision:
+    type: choice
+    labels:
+    - REPLY
+    - ARCHIVE
+    - ESCALATE
+    question: Choose the operational action for an incoming business email.
+    class_descriptions:
+      REPLY: needs a routine response
+      ARCHIVE: informational or unsolicited
+      ESCALATE: requires authority or urgent handling
+  semantic_concepts: []
+  positive_concepts: []
+  negative_concepts: []
+  policy: Choose the operational action for an incoming business email.
+  metadata: {}
+- name: email_sensitivity
+  description: Classify the permitted disclosure level of an email.
+  domain: email
+  decision:
+    type: choice
+    labels:
+    - PUBLIC
+    - INTERNAL
+    - CONFIDENTIAL
+    question: Classify the permitted disclosure level of an email.
+    class_descriptions:
+      PUBLIC: safe for public distribution
+      INTERNAL: company-only routine material
+      CONFIDENTIAL: secrets, personal data, or privileged material
+  semantic_concepts: []
+  positive_concepts: []
+  negative_concepts: []
+  policy: Classify the permitted disclosure level of an email.
+  metadata: {}
+- name: log_severity
+  description: Assign operational severity to a system event.
+  domain: operations_logs
+  decision:
+    type: choice
+    labels:
+    - INFO
+    - WARN
+    - CRITICAL
+    question: Assign operational severity to a system event.
+    class_descriptions:
+      INFO: normal operation
+      WARN: degradation needing attention
+      CRITICAL: active outage or data loss
+  semantic_concepts: []
+  positive_concepts: []
+  negative_concepts: []
+  policy: Assign operational severity to a system event.
+  metadata: {}
+- name: log_subsystem
+  description: Route an infrastructure event to the owning subsystem.
+  domain: operations_logs
+  decision:
+    type: choice
+    labels:
+    - NETWORK
+    - STORAGE
+    - AUTH
+    question: Route an infrastructure event to the owning subsystem.
+    class_descriptions:
+      NETWORK: connectivity and DNS
+      STORAGE: disks, databases, and persistence
+      AUTH: credentials and authorization
+  semantic_concepts: []
+  positive_concepts: []
+  negative_concepts: []
+  policy: Route an infrastructure event to the owning subsystem.
+  metadata: {}
+- name: return_eligibility
+  description: Decide whether a merchandise return is allowed under policy.
+  domain: ecommerce
+  decision:
+    type: choice
+    labels:
+    - ELIGIBLE
+    - INELIGIBLE
+    - REVIEW
+    question: Decide whether a merchandise return is allowed under policy.
+    class_descriptions:
+      ELIGIBLE: within policy
+      INELIGIBLE: clearly outside policy
+      REVIEW: exception or insufficient evidence
+  semantic_concepts: []
+  positive_concepts: []
+  negative_concepts: []
+  policy: Decide whether a merchandise return is allowed under policy.
+  metadata: {}
+- name: order_risk
+  description: Assess fraud risk for an online order.
+  domain: ecommerce
+  decision:
+    type: choice
+    labels:
+    - ALLOW
+    - REVIEW
+    - BLOCK
+    question: Assess fraud risk for an online order.
+    class_descriptions:
+      ALLOW: ordinary low-risk purchase
+      REVIEW: suspicious but inconclusive
+      BLOCK: strong evidence of abuse
+  semantic_concepts: []
+  positive_concepts: []
+  negative_concepts: []
+  policy: Assess fraud risk for an online order.
+  metadata: {}
+- name: home_event
+  description: Choose how a smart-home controller should handle an event.
+  domain: smart_home
+  decision:
+    type: choice
+    labels:
+    - NOTIFY
+    - AUTOMATE
+    - IGNORE
+    question: Choose how a smart-home controller should handle an event.
+    class_descriptions:
+      NOTIFY: human awareness is needed
+      AUTOMATE: safe predefined action
+      IGNORE: benign noise
+  semantic_concepts: []
+  positive_concepts: []
+  negative_concepts: []
+  policy: Choose how a smart-home controller should handle an event.
+  metadata: {}
+- name: energy_action
+  description: Choose an energy-management response to a household condition.
+  domain: smart_home
+  decision:
+    type: choice
+    labels:
+    - REDUCE
+    - SHIFT
+    - NO_ACTION
+    question: Choose an energy-management response to a household condition.
+    class_descriptions:
+      REDUCE: lower consumption now
+      SHIFT: defer flexible work
+      NO_ACTION: leave operation unchanged
+  semantic_concepts: []
+  positive_concepts: []
+  negative_concepts: []
+  policy: Choose an energy-management response to a household condition.
+  metadata: {}

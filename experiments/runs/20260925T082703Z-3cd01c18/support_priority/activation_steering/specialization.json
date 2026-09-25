@@ -1,0 +1,40 @@
+{
+  "artifact": {
+    "arrays": [
+      "task_vector"
+    ],
+    "decision_component": "laya_head",
+    "labels": [
+      "URGENT",
+      "NORMAL"
+    ],
+    "params": {
+      "layer": -1,
+      "strength": -1.0,
+      "validation_accuracy": 1.0
+    },
+    "strategy": "activation_steering"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "NORMAL": "routine help without immediate harm",
+        "URGENT": "outage, security, or material financial harm"
+      },
+      "labels": [
+        "URGENT",
+        "NORMAL"
+      ],
+      "question": "Classify support tickets by whether immediate human intervention is required.",
+      "type": "choice"
+    },
+    "description": "Classify support tickets by whether immediate human intervention is required.",
+    "domain": "customer_support",
+    "metadata": {},
+    "name": "support_priority",
+    "negative_concepts": [],
+    "policy": "Classify support tickets by whether immediate human intervention is required.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

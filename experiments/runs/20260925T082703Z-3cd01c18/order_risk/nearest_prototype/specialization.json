@@ -1,0 +1,45 @@
+{
+  "artifact": {
+    "arrays": [
+      "example_embeddings",
+      "example_labels",
+      "prototypes"
+    ],
+    "decision_component": "embedding_classifier",
+    "labels": [
+      "ALLOW",
+      "REVIEW",
+      "BLOCK"
+    ],
+    "params": {
+      "mode": "mean",
+      "temperature": 0.2,
+      "top_k": 3
+    },
+    "strategy": "nearest_prototype"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "ALLOW": "ordinary low-risk purchase",
+        "BLOCK": "strong evidence of abuse",
+        "REVIEW": "suspicious but inconclusive"
+      },
+      "labels": [
+        "ALLOW",
+        "REVIEW",
+        "BLOCK"
+      ],
+      "question": "Assess fraud risk for an online order.",
+      "type": "choice"
+    },
+    "description": "Assess fraud risk for an online order.",
+    "domain": "ecommerce",
+    "metadata": {},
+    "name": "order_risk",
+    "negative_concepts": [],
+    "policy": "Assess fraud risk for an online order.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}

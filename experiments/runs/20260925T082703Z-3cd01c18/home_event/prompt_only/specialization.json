@@ -1,0 +1,39 @@
+{
+  "artifact": {
+    "arrays": [],
+    "decision_component": "laya_head",
+    "labels": [
+      "NOTIFY",
+      "AUTOMATE",
+      "IGNORE"
+    ],
+    "params": {
+      "rewritten_instructions": "Choose how a smart-home controller should handle an event.\nApply this policy exactly. NOTIFY: human awareness is needed; AUTOMATE: safe predefined action; IGNORE: benign noise. Resolve boundary cases using the class definitions, not label position."
+    },
+    "strategy": "prompt_only"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "AUTOMATE": "safe predefined action",
+        "IGNORE": "benign noise",
+        "NOTIFY": "human awareness is needed"
+      },
+      "labels": [
+        "NOTIFY",
+        "AUTOMATE",
+        "IGNORE"
+      ],
+      "question": "Choose how a smart-home controller should handle an event.",
+      "type": "choice"
+    },
+    "description": "Choose how a smart-home controller should handle an event.",
+    "domain": "smart_home",
+    "metadata": {},
+    "name": "home_event",
+    "negative_concepts": [],
+    "policy": "Choose how a smart-home controller should handle an event.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}
