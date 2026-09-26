@@ -254,22 +254,30 @@ class StudioService:
         def work(update):
             spec_provider = self.provider(request.specialization_provider)
             benchmark_provider = self.provider(request.benchmark_provider)
-            update(10, "Specialization data", "Creating diverse examples near class boundaries.")
-            specialization, spec_record = generate_specialization(
-                spec_provider, request.task, request.specialization_examples, request.seed + 1
-            )
-            update(48, "Independent benchmark", "Creating hidden cases, paraphrases, and traps.")
-            tests, benchmark_record = generate_benchmark_splits(
-                benchmark_provider,
-                request.task,
-                {
-                    "validation": request.validation_examples,
-                    "hidden": request.hidden_examples,
-                    "paraphrase": request.paraphrase_examples,
-                    "hard": request.hard_examples,
-                },
-                request.seed + 50_000,
-            )
+            update(10, "Generating data", "Creating independent specialization and test data.")
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                spec_future = pool.submit(
+                    generate_specialization,
+                    spec_provider,
+                    request.task,
+                    request.specialization_examples,
+                    request.seed + 1,
+                )
+                benchmark_future = pool.submit(
+                    generate_benchmark_splits,
+                    benchmark_provider,
+                    request.task,
+                    {
+                        "validation": request.validation_examples,
+                        "hidden": request.hidden_examples,
+                        "paraphrase": request.paraphrase_examples,
+                        "hard": request.hard_examples,
+                    },
+                    request.seed + 50_000,
+                )
+                specialization, spec_record = spec_future.result()
+                update(48, "Independent benchmark", "Finalizing hidden and robustness cases.")
+                tests, benchmark_record = benchmark_future.result()
             update(82, "Leakage check", "Checking duplicates and split separation.")
             draft_id = f"{request.task.name}-{uuid.uuid4().hex[:8]}"
             examples, removed = remove_generated_leakage(specialization + tests)

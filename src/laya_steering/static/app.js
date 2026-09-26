@@ -211,12 +211,17 @@ async function startPlan(event) {
 
 async function watchJob(jobId, step, onDone) {
   renderProgress(step, {progress: 2, phase: 'Starting', message: 'Preparing the job…'});
+  let lastSignature = '';
   while (true) {
     await new Promise(resolve => setTimeout(resolve, 700));
     let job;
     try { job = await api(`/api/studio/jobs/${jobId}`); }
     catch (error) { renderProgress(step, {status: 'failed', error: error.message}); return; }
-    renderProgress(step, job);
+    const signature = JSON.stringify([job.status, job.progress, job.phase, job.message, job.error]);
+    if (signature !== lastSignature) {
+      renderProgress(step, job);
+      lastSignature = signature;
+    }
     if (job.status === 'completed') { onDone(job.result); return; }
     if (job.status === 'failed') return;
   }

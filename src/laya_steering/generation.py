@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -107,12 +108,15 @@ def generate_benchmark_splits(
     seed: int,
 ) -> tuple[list[Example], GenerationRecord]:
     """Generate all evaluation splits without ever receiving specialization examples."""
-    rows: list[Example] = []
-    records: list[GenerationRecord] = []
-    for offset, split in enumerate(("validation", "hidden", "paraphrase", "hard")):
-        count = counts.get(split, 0)
-        if not count:
-            continue
+    requested = [
+        (offset, split, counts.get(split, 0))
+        for offset, split in enumerate(("validation", "hidden", "paraphrase", "hard"))
+        if counts.get(split, 0)
+    ]
+    if not requested:
+        raise ValueError("at least one benchmark split must be requested")
+
+    def generate_split(offset: int, split: str, count: int):
         split_guidance = {
             "validation": "near-boundary cases for selecting scalar strengths; not final reporting",
             "hidden": "semantically varied unseen cases, balanced across labels",
@@ -135,8 +139,14 @@ allowed labels. Inputs must be unique. Return data, not code.
             seed + 1009 * (offset + 1),
             "benchmark",
         )
-        rows.extend(part)
-        records.extend(part_records)
+        return part, part_records
+
+    # Split prompts and seeds are independent, so provider latency can overlap safely.
+    with ThreadPoolExecutor(max_workers=min(4, len(requested))) as pool:
+        futures = [pool.submit(generate_split, *item) for item in requested]
+        generated = [future.result() for future in futures]
+    rows = [row for part, _ in generated for row in part]
+    records = [record for _, part_records in generated for record in part_records]
     merged_prompt_hash = hashlib.sha256(
         "".join(x.prompt_sha256 for x in records).encode()
     ).hexdigest()
