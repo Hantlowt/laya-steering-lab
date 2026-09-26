@@ -11,4 +11,5 @@ build/
 artifacts/cache/
 experiments/*.sqlite3-shm
 experiments/*.sqlite3-wal
-exports/
+experiments/studio/exports/.*-download.zip
+/exports/

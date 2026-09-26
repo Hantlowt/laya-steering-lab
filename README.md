@@ -1,10 +1,14 @@
-# Laya Steering Lab
+# Laya Studio
 
-`laya-steering-lab` is a reproducible research framework for testing whether a frozen
+`laya-studio` is a reproducible research framework and user-friendly local studio for testing
+whether a frozen
 [Laya](https://github.com/NandhaKishorM/laya) decision model can be specialized to new domains
 without backpropagation or weight fine-tuning. It compares Laya's original typed decision head to
 prompt changes, embedding-space classifiers and transforms, and—where the runtime safely permits
 it—actual hidden-state intervention.
+
+The Python distribution remains named `laya-steering-lab` for package compatibility, while the
+application and repository are named **Laya Studio**.
 
 This is an experiment harness, not a claim that steering works. Negative and unstable results are
 retained alongside positive ones.

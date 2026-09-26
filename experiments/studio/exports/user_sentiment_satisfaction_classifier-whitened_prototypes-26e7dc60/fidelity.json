@@ -1,0 +1,98 @@
+{
+  "atol": 1e-06,
+  "expected": [
+    {
+      "label": "SATISFIED",
+      "probabilities": {
+        "MIXED": 0.33854031562805176,
+        "SATISFIED": 0.35845133662223816,
+        "UNSATISFIED": 0.30300837755203247
+      }
+    },
+    {
+      "label": "MIXED",
+      "probabilities": {
+        "MIXED": 0.4039897620677948,
+        "SATISFIED": 0.296953022480011,
+        "UNSATISFIED": 0.2990572452545166
+      }
+    },
+    {
+      "label": "MIXED",
+      "probabilities": {
+        "MIXED": 0.3441237211227417,
+        "SATISFIED": 0.31237757205963135,
+        "UNSATISFIED": 0.34349867701530457
+      }
+    },
+    {
+      "label": "SATISFIED",
+      "probabilities": {
+        "MIXED": 0.313283234834671,
+        "SATISFIED": 0.3648114502429962,
+        "UNSATISFIED": 0.32190531492233276
+      }
+    },
+    {
+      "label": "MIXED",
+      "probabilities": {
+        "MIXED": 0.3563969135284424,
+        "SATISFIED": 0.34190788865089417,
+        "UNSATISFIED": 0.30169522762298584
+      }
+    },
+    {
+      "label": "UNSATISFIED",
+      "probabilities": {
+        "MIXED": 0.31763947010040283,
+        "SATISFIED": 0.34113723039627075,
+        "UNSATISFIED": 0.3412232995033264
+      }
+    },
+    {
+      "label": "SATISFIED",
+      "probabilities": {
+        "MIXED": 0.3104231059551239,
+        "SATISFIED": 0.3796767592430115,
+        "UNSATISFIED": 0.3099001348018646
+      }
+    },
+    {
+      "label": "MIXED",
+      "probabilities": {
+        "MIXED": 0.35577529668807983,
+        "SATISFIED": 0.3231950104236603,
+        "UNSATISFIED": 0.3210296928882599
+      }
+    },
+    {
+      "label": "UNSATISFIED",
+      "probabilities": {
+        "MIXED": 0.3305356800556183,
+        "SATISFIED": 0.32256248593330383,
+        "UNSATISFIED": 0.3469017744064331
+      }
+    },
+    {
+      "label": "SATISFIED",
+      "probabilities": {
+        "MIXED": 0.30682820081710815,
+        "SATISFIED": 0.3525097072124481,
+        "UNSATISFIED": 0.34066206216812134
+      }
+    }
+  ],
+  "probes": [
+    "I love the new phone; its battery lasts all day and the camera is fantastic.",
+    "The product works well, but the packaging was slightly damaged.",
+    "I am unhappy with the product; it constantly glitches and fails to save my work.",
+    "The restaurant was excellent, and the service was wonderful.",
+    "I love the coffee, although the service was a bit slow today.",
+    "The service was terrible, and I will never return to this restaurant.",
+    "Thanks for the quick response, the issue is finally resolved and I’m very happy with the support.",
+    "The headphones sound great; however, they are uncomfortable after an hour of use.",
+    "I am disappointed that the delivery arrived broken and the support team was unhelpful.",
+    "The movie was great, the storyline kept me engaged from start to finish."
+  ],
+  "rtol": 1e-05
+}

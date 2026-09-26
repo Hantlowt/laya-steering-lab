@@ -1,0 +1,142 @@
+{
+  "artifact": {
+    "arrays": [
+      "mean",
+      "prototypes",
+      "whitening"
+    ],
+    "decision_component": "embedding_classifier",
+    "labels": [
+      "SATISFIED",
+      "MIXED",
+      "UNSATISFIED"
+    ],
+    "params": {
+      "shrinkage": 0.1,
+      "temperature": 0.2
+    },
+    "strategy": "whitened_prototypes"
+  },
+  "task": {
+    "decision": {
+      "class_descriptions": {
+        "MIXED": "The sentence contains both positive and negative sentiments toward the same subject, or expresses ambivalence, uncertainty, or conditional satisfaction that prevents a definitive positive or negative classification.",
+        "SATISFIED": "The sentence conveys an overall positive attitude with clear expressions of approval, happiness, appreciation, or contentment, and contains no explicit or implicit negative qualifiers.",
+        "UNSATISFIED": "The sentence conveys an overall negative attitude with clear expressions of disappointment, frustration, criticism, or dissatisfaction, and contains no overriding positive qualifiers."
+      },
+      "labels": [
+        "SATISFIED",
+        "MIXED",
+        "UNSATISFIED"
+      ],
+      "question": null,
+      "type": "choice"
+    },
+    "description": "A deterministic policy that assigns one of three sentiment labels—SATISFIED, MIXED, or UNSATISFIED—to a single user-provided sentence based on the expressed attitude toward a product, service, experience, or outcome.",
+    "domain": "Natural Language Understanding – Sentiment and Attitude Detection",
+    "metadata": {
+      "boundary_rules": {
+        "mixed_boundary": "If the sentence contains at least one positive sentiment cue and at least one negative sentiment cue that refer to the same target, or includes qualifiers such as \"but\", \"although\", \"however\", \"yet\", \"still\", \"though\", \"somewhat\", \"partially\", \"conditionally\", then the sentence is classified as MIXED, regardless of overall polarity.",
+        "satisfied_boundary": "If the sentence contains only positive sentiment cues (or positive cues plus neutral/irrelevant content) and no negative cues, it is classified as SATISFIED.",
+        "unsatisfied_boundary": "If the sentence contains only negative sentiment cues (or negative cues plus neutral/irrelevant content) and no positive cues, it is classified as UNSATISFIED."
+      },
+      "negative_concepts": [
+        "explicit_negative_expression",
+        "unqualified_complaint",
+        "critical_adjectives",
+        "discontent",
+        "frustration"
+      ],
+      "positive_concepts": [
+        "explicit_positive_expression",
+        "unqualified_praise",
+        "affirmative_adjectives",
+        "gratitude",
+        "enthusiasm"
+      ],
+      "semantic_concepts": {
+        "contrast_connectors": [
+          "but",
+          "however",
+          "although",
+          "though",
+          "yet",
+          "still",
+          "even though",
+          "despite",
+          "while",
+          "whereas"
+        ],
+        "degree_modifiers": [
+          "somewhat",
+          "partially",
+          "slightly",
+          "barely",
+          "hardly",
+          "mostly",
+          "largely",
+          "completely",
+          "totally",
+          "entirely"
+        ],
+        "negative_cues": [
+          "disappointed",
+          "unhappy",
+          "sad",
+          "hate",
+          "dislike",
+          "bad",
+          "poor",
+          "terrible",
+          "awful",
+          "worst",
+          "unsatisfied",
+          "frustrated",
+          "annoyed",
+          "complain",
+          "problem",
+          "issue",
+          "fail",
+          "failed",
+          "not good",
+          "not satisfied"
+        ],
+        "neutral_cues": [
+          "neutral",
+          "okay",
+          "fine",
+          "average",
+          "mediocre",
+          "so‑so",
+          "acceptable",
+          "reasonable"
+        ],
+        "positive_cues": [
+          "praise",
+          "appreciation",
+          "love",
+          "like",
+          "enjoy",
+          "pleased",
+          "happy",
+          "delighted",
+          "great",
+          "excellent",
+          "good",
+          "satisfied",
+          "awesome",
+          "fantastic",
+          "wonderful",
+          "thank you",
+          "thanks",
+          "grateful"
+        ]
+      }
+    },
+    "name": "user_sentiment_satisfaction_classifier",
+    "negative_concepts": [],
+    "policy": "The classifier evaluates the input sentence according to a hierarchical rule set. The evaluation proceeds in the order: (1) Mixed‑sentiment detection, (2) Positive‑sentiment detection, (3) Negative‑sentiment detection. The first rule that matches determines the label.",
+    "positive_concepts": [],
+    "semantic_concepts": []
+  }
+}
