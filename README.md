@@ -1,63 +1,102 @@
 # Laya Studio
 
-**Specialize Laya for a new domain in minutes—without fine-tuning, gradient training, or a large
-GPU machine.**
+> **Before fine-tuning Laya, try specializing its representation space.**
 
-`laya-studio` is a reproducible research framework and user-friendly local studio. Describe the
-behavior you want in natural language; it generates synthetic examples, builds training-free
-specializations over a frozen [Laya](https://github.com/NandhaKishorM/laya) model, independently
-benchmarks them, and exports the best result. It compares Laya's original typed decision head to
-prompt changes, embedding-space classifiers and transforms, and—where the runtime safely permits
-it—actual hidden-state intervention.
+Laya Studio helps you specialize a frozen [Laya](https://github.com/NandhaKishorM/laya) model for
+a new domain or decision task—without gradients, without changing its weights, and without
+maintaining another full model checkpoint.
+
+Describe the behavior you want in natural language. Laya Studio generates synthetic examples,
+derives lightweight specialization geometry from Laya's existing representations, benchmarks
+multiple approaches against vanilla Laya on independent test data, and exports the best result as
+a small portable artifact.
+
+The intuition is simple: **the model may already contain enough information for your task. Sometimes
+you do not need to teach it again—you need a better way to read the representation it already
+learned.**
 
 ![Laya Studio specialization creation interface](docs/assets/laya-studio-create.png)
 
-This is an experiment harness, not a claim that steering works. Negative and unstable results are
-retained alongside positive ones.
+## From a task description to a specialized Laya
 
-## What is implemented
+Suppose vanilla Laya needs to classify support tickets as `CRITICAL`, `NORMAL`, or `IGNORE`.
+Laya Studio can:
 
-- Strict Pydantic task and example schemas; generated content is treated only as data.
-- Logically isolated specialization and benchmark generation, with separate providers/models,
-  prompts, seeds, and content-addressed response caches.
-- Cross-split duplicate-ID, normalized-text, and content-hash leakage rejection.
-- Frozen PyTorch Laya, native Apple Silicon `laya-mlx`, and deterministic fake-test backends.
-- Baseline, prompt-only, mean/medoid/nearest/top-k prototypes, contrastive vectors, multiclass
-  centroids, whitened prototypes, closed-form residual transforms, true PyTorch activation
-  steering, multiple semantic vectors, and pairwise Copeland ranking.
-- Accuracy, balanced accuracy, macro/per-class F1, precision and recall, Brier score, ECE, log loss,
-  specialization cost, cold load, warm latency, batch latency, throughput, and peak memory.
-- Option-order, paraphrase, generator-style, irrelevant-noise, and domain-holdout reporting.
-- Repeated seeds, task-level paired deltas, mean, sample deviation, 95% CI, seeded bootstrap CI,
-  and win/tie/loss counts.
-- SQLite experiment index, immutable JSON/JSONL/YAML artifacts, a guided local Studio, and a
-  versioned SafeTensors export with fresh-process fidelity validation.
+1. turn that requirement into an explicit, editable decision policy;
+2. generate diverse labeled examples for specialization;
+3. derive centroids, contrastive directions, transforms, or steering vectors from those examples;
+4. test every method against vanilla Laya on independently generated held-out cases;
+5. let you inspect edge cases and paraphrases in the Playground;
+6. export the winning specialization and reload it in another application.
 
-## Architecture and leakage boundary
+```text
+Traditional fine-tuning
+task → dataset → gradient training → another model checkpoint
 
-```mermaid
-flowchart TD
-  T[Task specification] --> SG[Specialization generator: model A]
-  T --> BG[Benchmark generator: model B]
-  SG --> S[(Synthetic specialization examples)]
-  BG --> V[(Validation)]
-  BG --> H[(Hidden / paraphrase / hard tests)]
-  S --> M[Closed-form strategy fit]
-  M --> L[Frozen Laya + specialization artifact]
-  V --> L
-  L --> E[Evaluation]
-  H --> E
-  E --> R[(SQLite, artifacts, report, dashboard)]
-  L --> X[Portable export + fresh-process fidelity gate]
+Laya Studio
+task → synthetic examples → representation specialization → small portable artifact
 ```
 
-The benchmark prompt never receives specialization examples. Validation can select a scalar
-strength, but hidden, paraphrase, and hard examples never reach `fit`. Every row receives a hash of
-normalized text, and suite loading fails if it appears in another split. The specialization model
-and benchmark model may be entirely different. When they are the same, prompts and seed ranges
-remain isolated. Raw provider responses are cached so a suite can be replayed without an API.
+The base checkpoint remains frozen and reusable. One Laya installation can support many independent
+specializations without duplicating its weights.
 
-See [the technical design](docs/design.md) for inspected API versions and implementation boundaries.
+## Why try this before fine-tuning?
+
+Our experiments show that changing how Laya's embedding or representation space is interpreted can
+produce substantial improvements on some classification, routing, prioritization, ranking, and
+domain-decision tasks. It does not work universally—and Laya Studio is deliberately built to tell
+you when it does not—but it works often enough that it is worth testing before training new weights.
+
+| | Laya Studio representation specialization | Fine-tuning |
+|---|---|---|
+| Training gradients | None | Required |
+| Base weights modified | No; Laya stays frozen | Yes, directly or through adapters |
+| Artifact | Task vectors, centroids, or small matrices | New checkpoint or adapter weights |
+| Iteration speed | Fit and compare lightweight methods quickly | Train, validate, and manage checkpoints |
+| One base model, many tasks | Yes; specializations share one checkpoint | Usually one adapter/checkpoint per specialization |
+| Compute | Designed for local experimentation, including Apple Silicon | Often benefits from substantial accelerator memory |
+| Best suited for | Classification, routing, ranking, prioritization, domain decisions | Behaviors that lighter methods cannot capture reliably |
+
+If representation-space specialization reaches the quality and robustness your task needs,
+fine-tuning becomes unnecessary for that task. If it does not, the experiment gives you evidence
+that training is justified rather than assumed.
+
+Practical advantages include fast iteration, tiny artifacts relative to full checkpoints, simple
+rollback, direct comparison with baseline Laya, and a much lower barrier to trying several task
+definitions on a laptop. No optimizer or backward pass is used, and the original model remains
+available for every other specialization.
+
+If you find the idea useful, consider starring the repository—it helps more people discover and
+test the approach.
+
+## What Laya Studio tests
+
+Laya's encoder may already organize task-relevant information in its latent space. Laya Studio
+tests whether simple, inspectable geometry can exploit that organization:
+
+- **Prompt-only:** improve the task formulation without changing representation geometry.
+- **Prototypes and centroids:** classify by similarity to labeled regions of Laya's own embedding
+  space, using means, medoids, nearest examples, or top-k voting.
+- **Contrastive vectors:** derive directions such as `mean(positive) - mean(negative)`.
+- **Whitening and residual transforms:** center, whiten, or analytically transform embeddings with
+  explicit, exportable statistics and small matrices.
+- **Multi-vector methods:** represent a task through several semantic directions instead of one
+  global axis.
+- **Pairwise ranking:** decompose ranking decisions and aggregate deterministic comparisons.
+- **Activation steering:** where the backend exposes a safe hook, inject a derived task vector into
+  an intermediate representation before Laya's original decision head.
+
+These methods are evaluated against the unchanged Laya baseline on exactly the same hidden data.
+The framework reports accuracy, balanced accuracy, macro and per-class F1, precision, recall,
+Brier score, ECE, log loss, latency, throughput, specialization cost, and peak memory. Robustness
+checks cover option order, paraphrases, generator style, irrelevant noise, and domain holdouts.
+
+Repeated seeds produce paired baseline differences, mean, standard deviation, 95% confidence
+intervals, seeded bootstrap intervals, and task-level win/tie/loss counts. A method is not presented
+as better because it happened to win one benchmark.
+
+This remains an experiment harness, not a claim that representation specialization always works.
+Negative, unsupported, and statistically unstable results are retained alongside positive ones.
 
 ## Install
 
@@ -86,49 +125,15 @@ export LAYA_LAB_MODEL=aac6fef/laya-mlx
 ```
 
 The current MLX public API does not expose a safe intermediate-state hook, so
-`activation_steering` is recorded as unsupported there. Embedding strategies reuse the loaded MLX
-encoder. The PyTorch adapter freezes all parameters and installs a temporary encoder-layer forward
-hook for true activation steering.
+`activation_steering` is recorded as unsupported there. Embedding strategies still reuse the
+loaded MLX encoder. PyTorch freezes every parameter and provides a temporary encoder-layer hook
+for true activation-steering experiments.
 
-Copy `.env.example` to `.env`, export the values in your shell, or use your preferred secret
-manager. `.env` is ignored by Git. Keys are never stored in suite metadata or committed files.
+Copy `.env.example` to `.env`, export its values in your shell, or save the connection from the
+Studio. `.env` is ignored by Git. API keys are never stored in suites, experiment metadata, logs,
+or browser local storage.
 
-## Quick start
-
-Generate unrelated task families. Model A creates specialization data; model B independently
-creates validation and hidden data:
-
-```bash
-export LAYA_LAB_LLM_API_KEY=...
-export LAYA_LAB_SPECIALIZATION_MODEL=model-a
-export LAYA_LAB_BENCHMARK_MODEL=model-b
-
-laya-studio generate \
-  --domains 10 --tasks-per-domain 5 \
-  --specialization-examples 40 --test-examples 300 \
-  --style-control-model model-c \
-  --repetitions 3 --seed 100 --output benchmarks/research
-```
-
-`--style-control-model` adds an independently prompted hidden stratum for the same tasks. Reports
-show accuracy by `source_style` and the cross-style spread instead of conflating it with accuracy.
-
-Run all methods on exactly the same suite. Unsupported method/task combinations become explicit
-skip artifacts:
-
-```bash
-laya-studio benchmark \
-  --suite benchmarks/research/seed-100 \
-  --methods baseline,prompt_only,nearest_prototype,contrastive_vector,multiclass_centroids,whitened_prototypes,residual_embedding_transform,activation_steering,multi_vector_steering,pairwise_ranking \
-  --seeds 11,22,33
-```
-
-On PyTorch, use names such as `activation_steering@0`, `activation_steering@11`, and
-`activation_steering@-1` to compare encoder layers. Each strength is selected on validation only.
-
-### Guided Studio
-
-The simplest workflow is the local interface:
+## Quick start: guided Studio
 
 ```bash
 laya-studio serve
@@ -137,35 +142,22 @@ laya-studio serve
 Open `http://127.0.0.1:8787`, then:
 
 1. describe the desired behavior in natural language;
-2. connect OpenRouter, OpenAI, or another OpenAI-compatible endpoint and choose its model;
+2. connect OpenRouter, OpenAI, or another OpenAI-compatible endpoint;
 3. review and edit the inferred policy and labels;
-4. generate independently prompted specialization, validation, hidden, paraphrase, and hard data;
-5. edit individual examples and labels without touching JSON;
-6. compare selected methods on real frozen Laya and download the best fidelity-checked artifact.
+4. generate isolated specialization, validation, hidden, paraphrase, and hard datasets;
+5. review individual examples without handling raw JSON;
+6. select the methods to compare on real frozen Laya;
+7. keep a default method, test modified examples in the Playground, and export the result.
 
-Every completed experiment also appears in the **Model library**. Give a variant a readable name,
-keep or remove individual methods from your shortlist, choose its default method (the best hidden
-score is selected initially), and export any method—not only the winner. The separate **Playground**
-tab can open a specialization directly from its library card, switch models or methods, and start
-from hidden, paraphrase, hard, or validation examples. You can alter their wording and run the
-edited text; scratchpad edits are never written back to the benchmark, so the original evidence
-remains reproducible.
+The **Model library** gives each specialization a readable name and lets you keep, remove, compare,
+or export individual methods. The separate **Playground** can load benchmark examples, alter their
+wording without saving those edits, and run them through any retained method.
 
-API keys are never written to the experiment store, generated suite, logs, or browser local
-storage. By default they stay in process memory. The connection form also offers an explicit
-**Save this connection to `.env`** option; the server writes the local, Git-ignored file with
-restrictive permissions and never sends the saved key back to the browser. A separate benchmark
-endpoint/model can be configured in the policy step.
+By default an API key remains only in process memory. The optional **Save this connection to
+`.env`** control writes the local Git-ignored file with restrictive permissions and never sends the
+saved secret back to the browser. A separate provider or model can generate the benchmark.
 
-For scripted workflows, inspect paired statistics and a held-out domain:
-
-```bash
-laya-studio report RUN_ID --bootstrap-samples 10000
-laya-studio report RUN_ID --holdout-domain smart_home
-laya-studio compare RUN_A RUN_B
-```
-
-## One-off specialization
+### One-off specialization
 
 ```bash
 laya-studio specialize \
@@ -177,7 +169,71 @@ laya-studio specialize \
 
 For a reviewed policy, use `--task-file task.yaml`. The command obtains validation examples from
 the independent benchmark provider, fits without gradients, exports, starts a fresh Python process,
-reloads deterministic probes, and rejects the export if labels or probabilities drift.
+reloads deterministic probes, and rejects the export if predictions or probabilities drift.
+
+### Research suites
+
+Model A can generate specialization data while model B independently generates validation and
+hidden data:
+
+```bash
+export LAYA_LAB_LLM_API_KEY=...
+export LAYA_LAB_SPECIALIZATION_MODEL=model-a
+export LAYA_LAB_BENCHMARK_MODEL=model-b
+
+laya-studio generate \
+  --domains 10 --tasks-per-domain 5 \
+  --specialization-examples 40 --test-examples 300 \
+  --style-control-model model-c \
+  --repetitions 3 --seed 100 --output benchmarks/research
+
+laya-studio benchmark \
+  --suite benchmarks/research/seed-100 \
+  --methods baseline,prompt_only,nearest_prototype,contrastive_vector,multiclass_centroids,whitened_prototypes,residual_embedding_transform,activation_steering,multi_vector_steering,pairwise_ranking \
+  --seeds 11,22,33
+```
+
+`--style-control-model` adds an independently prompted hidden stratum. Unsupported method/task
+combinations produce explicit skip artifacts. On PyTorch, names such as `activation_steering@0`,
+`activation_steering@11`, and `activation_steering@-1` compare encoder layers; strength is always
+selected on validation data only.
+
+Inspect paired statistics and held-out domains with:
+
+```bash
+laya-studio report RUN_ID --bootstrap-samples 10000
+laya-studio report RUN_ID --holdout-domain smart_home
+laya-studio compare RUN_A RUN_B
+```
+
+## Technical methodology
+
+```mermaid
+flowchart TD
+  T[Task specification] --> SG[Specialization generator: model A]
+  T --> BG[Benchmark generator: model B]
+  SG --> S[(Synthetic specialization examples)]
+  BG --> V[(Validation)]
+  BG --> H[(Hidden / paraphrase / hard tests)]
+  S --> M[Closed-form strategy fit]
+  M --> L[Frozen Laya + specialization artifact]
+  V --> L
+  L --> E[Evaluation]
+  H --> E
+  E --> R[(SQLite, artifacts, report, dashboard)]
+  L --> X[Portable export + fresh-process fidelity gate]
+```
+
+The benchmark prompt never receives specialization examples. Validation may select a scalar
+strength, but hidden, paraphrase, and hard examples never reach `fit`. Every row receives a hash of
+normalized text, and suite loading fails if the same content appears across protected splits.
+
+The specialization and benchmark generators may use entirely different providers and models. If
+they share a provider, their prompts and seed ranges remain isolated. Every raw response is cached,
+so an experiment can be replayed without contacting the provider again. All generated output is
+validated through strict Pydantic schemas and is treated as data, never executable code.
+
+See [the technical design](docs/design.md) for inspected Laya APIs and backend boundaries.
 
 ## Embedding classification is not activation steering
 
@@ -185,16 +241,22 @@ reloads deterministic probes, and rejects the export if labels or probabilities 
 |---|---|---|
 | baseline / prompt-only | Laya decision head | nothing, or instructions only |
 | prototypes / centroids / contrastive / whitening / residual / multi-vector | external embedding classifier | geometry over mean-pooled Laya encoder outputs |
-| activation steering | Laya decision head | intermediate encoder state gets `h + alpha*v` |
+| activation steering | Laya decision head | intermediate encoder state receives `h + alpha*v` |
 | pairwise ranking | repeated Laya decision head + Copeland | decomposition and deterministic aggregation |
 
-Prototype classification is never described as internal Laya steering. Residual transforms are
-small explicit matrices derived by ridge linear algebra. No strategy calls an optimizer or
-`backward`, and Laya parameters have `requires_grad=False` in the PyTorch backend.
+Prototype classification is not described as internal Laya steering. It is interesting for a
+different reason: it asks whether the encoder already exposes enough task structure to make a new
+decision without retraining the model. Centroids, contrastive directions, whitening, residual
+transforms, and multi-vector strategies are lightweight ways to test that geometry directly.
+
+Residual transforms are explicit small matrices derived by ridge linear algebra. No strategy calls
+an optimizer or `backward`, and all Laya parameters have `requires_grad=False` under PyTorch. True
+activation steering is reported separately because it modifies an intermediate representation and
+then uses Laya's original decision head.
 
 ## Portable exports
 
-A lightweight export references the base model and contains only specialization state:
+A lightweight export references the base model and stores only specialization state:
 
 ```text
 support-priority-laya/
@@ -206,39 +268,42 @@ support-priority-laya/
 └── README.md
 ```
 
-Load it with minimal application changes:
-
 ```python
 from laya_studio import SpecializedLaya
 
 agent = SpecializedLaya.from_pretrained("./exports/support-priority-laya")
 result = agent.predict("Production is down for every customer")
-# agent.system_one(...) is the same entry point
+# agent.system_one(...) preserves the same entry point
 ```
 
-Export a specialization retained by a benchmark run:
+Export a retained specialization:
 
 ```bash
 laya-studio export 'RUN_ID:TASK_NAME:STRATEGY' --output exports/my-laya
 laya-studio export 'RUN_ID:TASK_NAME:STRATEGY' --output exports/portable --self-contained
 ```
 
-`--self-contained` accepts only a resolved local checkpoint directory and copies it into the bundle;
-it does not silently download or duplicate remote weights. The manifest carries license and
-attribution fields. Verify redistribution is allowed by the checkpoint's license.
+The default bundle does not duplicate base weights. `--self-contained` accepts a resolved local
+checkpoint directory and copies it into the artifact; it never silently downloads weights. The
+manifest records license and attribution metadata, but redistribution remains subject to the
+upstream checkpoint's license.
+
+Every export runs deterministic probes before serialization, reloads the artifact in a fresh
+Python process, reruns those probes, and rejects the export if labels or probabilities differ
+beyond tolerance.
 
 ## Reproducing and extending experiments
 
-Suites are ordinary files. Re-run without contacting the LLM:
+Suites are ordinary files and can be rerun without an LLM:
 
 ```bash
 laya-studio benchmark --suite benchmarks/my-suite --backend pytorch --seed 42
 ```
 
-SQLite records the model identifier/revision when available, backend, task, suite, parameters,
-metrics, timings, seeds, environment and Git commit. The adjacent run directory retains
-specialization matrices and skips. Use multiple generated suites and repeated seeds; a single
-improved task is not evidence of a general effect.
+SQLite records the model identifier and revision when available, backend, task, immutable suite,
+strategy parameters, metrics, timings, seeds, environment, and Git commit. Adjacent run directories
+retain specialization matrices and explicit skips. Experiment databases, generated datasets,
+fitted vectors, and exports live under local Git-ignored directories; users own their results.
 
 To add a strategy, subclass `Strategy` in `src/laya_studio/strategies.py`, implement `fit`, declare
 the final `decision_component`, return JSON metadata plus named arrays, register its CLI name, and
@@ -248,19 +313,14 @@ To add an LLM provider, implement `LLMProvider.generate_json` in
 `src/laya_studio/providers.py`. Preserve strict JSON validation, raw-response caching,
 provider/model/seed provenance, and the specialization/benchmark boundary. Never execute output.
 
-To add a Laya runtime, implement `LayaBackend` in `src/laya_studio/backends.py`. Batch embeddings
-and decisions wherever possible. Only advertise activation steering if a stable, inspectable
-intervention before the original decision head exists.
+To add a runtime, implement `LayaBackend` in `src/laya_studio/backends.py`. Batch embeddings and
+decisions wherever possible. Only advertise activation steering when a stable, inspectable hook
+exists before the original decision head.
 
-## Local smoke experiment
+## Local smoke benchmark
 
 `benchmarks/smoke` contains ten human-authored fixture tasks across five domains. It exists for CI
-and plumbing—not as scientific evidence. Experiment databases, generated datasets, fitted vectors,
-and exports are written under `experiments/` locally and are intentionally ignored by Git. Every
-user therefore creates and owns their own results; no personal or machine-specific experiment data
-is shipped with the repository.
-
-Run the missing real-checkpoint experiment exactly with:
+and plumbing, not as scientific evidence. Run it against a real checkpoint with:
 
 ```bash
 pip install -e '.[pytorch]'
@@ -278,18 +338,25 @@ laya-studio benchmark --suite benchmarks/smoke --backend mlx \
 
 ## Scientific limitations
 
+- Representation specialization does not universally replace fine-tuning. Some required behaviors
+  will not be captured reliably by pooled embeddings, small transforms, or steering vectors.
 - Laya's encoder was not trained as a universal bi-encoder; cosine geometry may be weak even when
-  the typed decision head is good.
-- A pooled sentence direction is dimensionally valid at an encoder layer but not guaranteed to be
-  a causal concept direction.
+  the typed decision head is strong.
+- A pooled sentence direction is dimensionally valid at an encoder layer but is not guaranteed to
+  be a causal concept direction.
+- Synthetic examples can encode provider bias. Independent generation, style-control strata,
+  domain holdouts, and human review reduce that risk but do not eliminate it.
 - Provider seeds may be advisory. Cached artifacts, not regenerated text, are the reproducibility
   boundary.
-- Validation selection can overfit small synthetic sets. Use independent generations, domain
-  holdouts, paired intervals and generator-style strata.
+- Validation selection can overfit small synthetic sets. Use independent generations, multiple
+  seeds, paired intervals, generator-style strata, and held-out domains.
 - Normal confidence intervals are approximate for few tasks; prefer bootstrap output and inspect
-  task-level wins/ties/losses.
+  task-level wins, ties, and losses.
 - `ru_maxrss` is process-level peak memory and can overstate incremental strategy memory.
 - Self-contained checkpoint redistribution remains subject to upstream licensing.
+
+Fine-tuning remains appropriate when the behavior you need cannot be represented reliably through
+these lighter-weight methods. Laya Studio's job is to make that boundary measurable.
 
 ## Tests
 
@@ -299,6 +366,6 @@ ruff check src tests scripts
 ```
 
 Fast tests use the fake backend and cover leakage protection, deterministic SafeTensors,
-prototype/contrastive math, metrics, option permutations, artifact versioning, fresh-process export
-fidelity, backend contracts, LLM validation and malformed suites. Mark tests requiring downloaded
-weights with `@pytest.mark.integration`.
+prototype and contrastive mathematics, metrics, option permutations, artifact versioning,
+fresh-process export fidelity, backend contracts, LLM-response validation, and malformed suites.
+Mark tests requiring downloaded weights with `@pytest.mark.integration`.
