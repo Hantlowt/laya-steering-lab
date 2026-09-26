@@ -4,7 +4,17 @@ import shutil
 from pathlib import Path
 
 from .store import ExperimentStore
-from .studio import GenerateRequest, PlanRequest, RunRequest, SettingsRequest, StudioService
+from .studio import (
+    ExportResultRequest,
+    GenerateRequest,
+    KeepRequest,
+    NameRequest,
+    PlanRequest,
+    PlaygroundRequest,
+    RunRequest,
+    SettingsRequest,
+    StudioService,
+)
 
 
 def create_app(database: Path):
@@ -25,6 +35,7 @@ def create_app(database: Path):
     @app.get("/", response_class=HTMLResponse)
     @app.get("/create", response_class=HTMLResponse)
     @app.get("/runs", response_class=HTMLResponse)
+    @app.get("/library", response_class=HTMLResponse)
     def shell():
         return _shell()
 
@@ -87,6 +98,40 @@ def create_app(database: Path):
     def api_runs():
         return store.list_runs()
 
+    @app.get("/api/library/runs/{run_id}")
+    def library_run(run_id: str):
+        try:
+            return studio.library_run(run_id)
+        except (KeyError, FileNotFoundError, ValueError) as exc:
+            raise HTTPException(404, str(exc)) from exc
+
+    @app.post("/api/library/runs/{run_id}/name")
+    def rename_run(run_id: str, request: NameRequest):
+        store.set_run_name(run_id, request.name)
+        return {"name": request.name}
+
+    @app.post("/api/library/runs/{run_id}/keep")
+    def keep_result(run_id: str, request: KeepRequest):
+        try:
+            store.set_result_kept(run_id, request.task, request.strategy, request.kept)
+        except KeyError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        return {"kept": request.kept}
+
+    @app.post("/api/library/runs/{run_id}/predict")
+    def playground_predict(run_id: str, request: PlaygroundRequest):
+        try:
+            return studio.predict_result(run_id, request)
+        except KeyError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
+    @app.post("/api/library/runs/{run_id}/export")
+    def export_result(run_id: str, request: ExportResultRequest):
+        try:
+            return {"export_name": studio.export_result(run_id, request)}
+        except KeyError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
     @app.get("/api/runs/{run_id}")
     def api_run(run_id: str):
         try:
@@ -120,6 +165,7 @@ def _shell() -> str:
       <nav aria-label="Main navigation">
         <a href="/" data-nav="home"><span class="nav-icon">⌂</span>Overview</a>
         <a href="/create" data-nav="create"><span class="nav-icon">✦</span>New specialization</a>
+        <a href="/library" data-nav="library"><span class="nav-icon">▦</span>Model library</a>
         <a href="/runs" data-nav="runs"><span class="nav-icon">◫</span>Experiments</a>
       </nav>
       <div class="sidebar-note">

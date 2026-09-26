@@ -7,6 +7,7 @@ const state = {
   splits: null,
   activeSplit: 'specialization',
   result: null,
+  runName: null,
 };
 
 const splitMeta = {
@@ -96,6 +97,9 @@ async function route() {
   } else if (location.pathname === '/runs') {
     setNav('runs');
     await renderRuns();
+  } else if (location.pathname === '/library') {
+    setNav('library');
+    await renderLibrary();
   } else {
     setNav('home');
     await renderHome();
@@ -315,6 +319,7 @@ function renderDatasetReview() {
   const split = state.activeSplit;
   const rows = state.splits[split] || [];
   const binary = state.task.decision.labels.length === 2;
+  state.runName ||= state.task.name.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
   app.innerHTML = `<div class="page">${stepper(2)}
     <div class="page-head compact"><div><div class="eyebrow">Human review</div><h1>Your data is ready.</h1><p class="lede">Edit any text or label if needed. Hidden tests remain separate from specialization data.</p></div></div>
     <section class="card">
@@ -324,6 +329,7 @@ function renderDatasetReview() {
     </section>
     <section class="card">
       <div class="section-head"><div><h2>Methods to compare</h2><p>The best hidden-test result will be exported automatically.</p></div><span class="badge">Frozen Laya weights</span></div>
+      <div class="field" style="margin-bottom:18px"><label for="run-name">Variant name</label><input id="run-name" value="${esc(state.runName)}" maxlength="120" placeholder="e.g. Customer sentiment — balanced"><span class="hint">This is the friendly name shown in your model library.</span></div>
       <div class="method-grid">${methods.map(([id, title, help]) => {
         const disabled = (id === 'contrastive_vector' || id === 'activation_steering') && !binary;
         const checked = !disabled && ['baseline','prompt_only','nearest_prototype','multiclass_centroids','multi_vector_steering','activation_steering'].includes(id);
@@ -353,6 +359,7 @@ function syncDatasetRows() {
 }
 
 function bindDatasetEvents() {
+  document.getElementById('run-name').oninput = event => { state.runName = event.target.value; };
   document.querySelectorAll('[data-split]').forEach(button => button.onclick = () => { syncDatasetRows(); state.activeSplit = button.dataset.split; renderDatasetReview(); });
   document.querySelectorAll('[data-remove]').forEach(button => button.onclick = () => {
     syncDatasetRows(); const index = Number(button.closest('.example-row').dataset.index); state.splits[state.activeSplit].splice(index, 1); renderDatasetReview();
@@ -373,6 +380,7 @@ async function startRun() {
   const selected = [...document.querySelectorAll('[data-method]:checked')].map(x => x.dataset.method);
   if (!selected.includes('baseline')) selected.unshift('baseline');
   const payload = {
+    name: (document.getElementById('run-name')?.value || state.runName || state.task.name).trim(),
     task: state.task,
     examples: Object.values(state.splits).flat(),
     methods: selected,
@@ -402,9 +410,10 @@ function renderResults() {
       <div class="section-head"><div><h2>Full comparison</h2><p>One improvement is not enough: inspect robustness and latency too.</p></div><span class="badge">Run ${esc(result.run_id)}</span></div>
       <div class="ranking">${result.ranking.map((row, i) => `<div class="rank-row"><span class="rank-num">${i+1}</span><div class="rank-name"><strong>${humanMethod(row.strategy)}</strong><small>${componentLabel(row.decision_component)}</small></div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2,(row.accuracy || 0)*100)}%"></div></div><strong>${fmt(row.accuracy)}</strong><span class="latency">${row.latency_ms?.toFixed(1) || '—'} ms</span></div>`).join('')}</div>
     </section>
-    <div class="form-actions"><button class="btn btn-secondary" id="view-run">Inspect mistakes</button><button class="btn btn-primary" id="new-specialization">Create another specialization</button></div>
+    <div class="form-actions"><button class="btn btn-secondary" id="view-run">Inspect experiment</button><button class="btn btn-secondary" id="open-library">Open model library</button><button class="btn btn-primary" id="new-specialization">Create another specialization</button></div>
   </div>`;
   document.getElementById('view-run').onclick = () => { navigate('/runs'); setTimeout(() => openRun(result.run_id), 80); };
+  document.getElementById('open-library').onclick = () => { navigate('/library'); setTimeout(() => openLibraryRun(result.run_id), 80); };
   document.getElementById('new-specialization').onclick = () => { Object.assign(state,{config:null,task:null,draftId:null,splits:null,result:null}); renderCreate(); };
 }
 
@@ -416,12 +425,118 @@ function componentLabel(component) {
   return ({laya_head:'Final decision from the Laya head',embedding_classifier:'Embedding-space classifier',pairwise_laya_head:'Pairwise comparisons through the Laya head'})[component] || component;
 }
 
+function friendlyRunName(run) {
+  return run.display_name || (run.primary_task || run.id).replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function hiddenScore(row) {
+  return row.metrics?.splits?.hidden?.accuracy ?? row.metrics?.overall?.accuracy ?? 0;
+}
+
+async function renderLibrary() {
+  app.innerHTML = `<div class="page-loading">Loading model library…</div>`;
+  try {
+    const runs = (await api('/api/runs')).filter(run => run.status === 'completed');
+    app.innerHTML = `<div class="page">
+      <div class="page-head compact"><div><div class="eyebrow">Your Laya variants</div><h1>Model library</h1><p class="lede">Name, compare, test, and export your specializations without dealing with run IDs or raw files.</p></div><button class="btn btn-primary" id="library-create">＋ New specialization</button></div>
+      <div class="library-grid">${runs.map(run => `<article class="model-card" data-library-run="${esc(run.id)}">
+        <div class="model-card-top"><span class="model-icon">L</span><span class="badge">${run.kept_count ? `${run.kept_count} saved` : 'Choose models'}</span></div>
+        <h2>${esc(friendlyRunName(run))}</h2><p>${esc(run.primary_task || 'Laya specialization').replaceAll('_',' ')}</p>
+        <div class="model-meta"><span>${esc(run.backend)}</span><span>${run.result_count} methods</span></div>
+        <button class="btn btn-secondary">Open studio →</button>
+      </article>`).join('') || '<div class="card empty">No variants yet. Create your first specialization to start the library.</div>'}</div>
+      <div id="library-detail"></div>
+    </div>`;
+    document.getElementById('library-create').onclick = () => navigate('/create');
+    document.querySelectorAll('[data-library-run]').forEach(card => card.onclick = () => openLibraryRun(card.dataset.libraryRun));
+  } catch (error) { app.innerHTML = `<div class="page"><div class="error-panel">${esc(error.message)}</div></div>`; }
+}
+
+async function openLibraryRun(runId) {
+  const target = document.getElementById('library-detail');
+  if (!target) return;
+  target.innerHTML = `<section class="card progress-card"><div class="orb">L</div><p>Opening variant…</p></section>`;
+  try {
+    const data = await api(`/api/library/runs/${encodeURIComponent(runId)}`);
+    const runName = data.run.display_name || (data.tasks[0]?.name || runId).replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const ranked = [...data.results].sort((a,b) => hiddenScore(b) - hiddenScore(a));
+    const first = ranked.find(row => row.kept) || ranked[0];
+    const relevantExamples = data.examples.filter(row => row.task_name === first.task_name);
+    target.innerHTML = `<section class="library-detail">
+      <div class="card library-header">
+        <div><div class="eyebrow">Variant workspace</div><div class="rename-row"><input id="library-name" value="${esc(runName)}" maxlength="120"><button class="btn btn-secondary" id="save-library-name">Save name</button></div><p>${esc(data.run.base_model)} · ${esc(data.run.backend)} · ${esc(runId)}</p></div>
+        <button class="icon-btn" id="close-library" aria-label="Close">×</button>
+      </div>
+      <div class="studio-columns">
+        <section class="card"><div class="section-head"><div><h2>Methods</h2><p>Keep only the variants you want in your library. Experiment data is never deleted.</p></div></div>
+          <div class="method-library">${ranked.map((row, index) => `<article class="library-method ${row.kept ? 'kept' : ''}">
+            <div class="method-score"><strong>${fmt(hiddenScore(row))}</strong><small>hidden accuracy</small></div>
+            <div><h3>${humanMethod(row.strategy)}</h3><p>${componentLabel(row.decision_component)}</p></div>
+            ${index === 0 ? '<span class="badge">Best score</span>' : '<span></span>'}
+            <button class="btn ${row.kept ? 'btn-danger' : 'btn-secondary'}" data-keep-method="${esc(row.strategy)}" data-task="${esc(row.task_name)}" data-kept="${row.kept}">${row.kept ? 'Remove' : 'Keep model'}</button>
+            <button class="btn btn-ghost" data-export-method="${esc(row.strategy)}" data-task="${esc(row.task_name)}">Export</button>
+          </article>`).join('')}</div>
+        </section>
+        <section class="card playground"><div class="section-head"><div><h2>Playground</h2><p>Start from a benchmark example, edit it freely, and run without saving changes.</p></div><span class="badge">Scratchpad</span></div>
+          <div class="field"><label for="play-method">Model method</label><select id="play-method">${ranked.map(row => `<option value="${esc(row.strategy)}" data-task="${esc(row.task_name)}" ${row.strategy === first.strategy ? 'selected' : ''}>${humanMethod(row.strategy)}</option>`).join('')}</select></div>
+          <div class="field"><label for="play-example">Benchmark starting point</label><select id="play-example">${relevantExamples.map((row,i) => `<option value="${i}">${esc(splitMeta[row.split]?.[0] || row.split)} · ${esc(row.label)} · ${esc(row.input.slice(0,70))}</option>`).join('')}</select></div>
+          <div class="field"><label for="play-text">Input</label><textarea id="play-text">${esc(relevantExamples[0]?.input || '')}</textarea><span class="hint" id="play-expected">Expected in benchmark: ${esc(relevantExamples[0]?.label || '—')}</span></div>
+          <button class="btn btn-primary btn-lg" id="play-run">Run this example →</button>
+          <div id="play-result" class="play-result empty">The prediction will appear here.</div>
+        </section>
+      </div>
+    </section>`;
+    document.getElementById('close-library').onclick = () => target.innerHTML = '';
+    document.getElementById('save-library-name').onclick = async () => {
+      const name = document.getElementById('library-name').value.trim();
+      if (!name) return;
+      await api(`/api/library/runs/${encodeURIComponent(runId)}/name`, {method:'POST',body:JSON.stringify({name})});
+      toast('Variant name saved');
+    };
+    document.querySelectorAll('[data-keep-method]').forEach(button => button.onclick = async () => {
+      const kept = button.dataset.kept !== 'true';
+      await api(`/api/library/runs/${encodeURIComponent(runId)}/keep`, {method:'POST',body:JSON.stringify({task:button.dataset.task,strategy:button.dataset.keepMethod,kept})});
+      toast(kept ? 'Model kept in library' : 'Model removed from library');
+      await openLibraryRun(runId);
+    });
+    document.querySelectorAll('[data-export-method]').forEach(button => button.onclick = async () => {
+      button.disabled = true; button.textContent = 'Preparing…';
+      try {
+        const result = await api(`/api/library/runs/${encodeURIComponent(runId)}/export`, {method:'POST',body:JSON.stringify({task:button.dataset.task,strategy:button.dataset.exportMethod,name:document.getElementById('library-name').value.trim()})});
+        location.href = `/api/studio/exports/${encodeURIComponent(result.export_name)}`;
+      } catch (error) { toast(error.message, true); button.disabled = false; button.textContent = 'Export'; }
+    });
+    const exampleSelect = document.getElementById('play-example');
+    exampleSelect.onchange = () => {
+      const row = relevantExamples[Number(exampleSelect.value)];
+      document.getElementById('play-text').value = row?.input || '';
+      document.getElementById('play-expected').textContent = `Expected in benchmark: ${row?.label || '—'}`;
+      document.getElementById('play-result').className = 'play-result empty';
+      document.getElementById('play-result').textContent = 'Edit the input, then run it.';
+    };
+    document.getElementById('play-run').onclick = async () => {
+      const button = document.getElementById('play-run');
+      const option = document.getElementById('play-method').selectedOptions[0];
+      const payload = {task:option.dataset.task,strategy:option.value,text:document.getElementById('play-text').value.trim()};
+      if (!payload.text) return;
+      button.disabled = true; button.textContent = 'Laya is deciding…';
+      try {
+        const result = await api(`/api/library/runs/${encodeURIComponent(runId)}/predict`, {method:'POST',body:JSON.stringify(payload)});
+        document.getElementById('play-result').className = 'play-result';
+        document.getElementById('play-result').innerHTML = `<div class="prediction-head"><span>Prediction</span><strong>${esc(result.label)}</strong></div>${Object.entries(result.probabilities || {}).sort((a,b)=>b[1]-a[1]).map(([label,value]) => `<div class="prob-row"><span>${esc(label)}</span><div class="bar-track"><div class="bar-fill" style="width:${value*100}%"></div></div><strong>${fmt(value)}</strong></div>`).join('')}`;
+      } catch (error) { toast(error.message, true); }
+      finally { button.disabled = false; button.textContent = 'Run this example →'; }
+    };
+    target.scrollIntoView({behavior:'smooth',block:'start'});
+  } catch (error) { target.innerHTML = `<div class="error-panel">${esc(error.message)}</div>`; }
+}
+
 async function renderRuns() {
   app.innerHTML = `<div class="page-loading">Loading experiments…</div>`;
   try {
     const runs = await api('/api/runs');
     app.innerHTML = `<div class="page"><div class="page-head compact"><div><div class="eyebrow">Scientific history</div><h1>Experiments</h1><p class="lede">Review models, domains, metrics, and mistakes for every run.</p></div><button class="btn btn-primary" id="runs-create">＋ New specialization</button></div>
-      <div class="run-list">${runs.map(run => `<article class="run-card" data-run="${esc(run.id)}"><div><h3>${esc(run.id)}</h3><div class="run-meta"><span>${esc(run.base_model)}</span><span>seed ${run.seed}</span></div></div><span class="badge ${run.backend === 'fake' ? 'fake' : ''}">${esc(run.backend)}</span><div><strong>${run.result_count}</strong><small style="display:block">results</small></div></article>`).join('') || '<div class="card empty">No experiments yet.</div>'}</div>
+      <div class="run-list">${runs.map(run => `<article class="run-card" data-run="${esc(run.id)}"><div><h3>${esc(friendlyRunName(run))}</h3><div class="run-meta"><span>${esc(run.id)}</span><span>${esc(run.base_model)}</span><span>seed ${run.seed}</span></div></div><span class="badge ${run.backend === 'fake' ? 'fake' : ''}">${esc(run.backend)}</span><div><strong>${run.result_count}</strong><small style="display:block">results</small></div></article>`).join('') || '<div class="card empty">No experiments yet.</div>'}</div>
       <div id="run-detail"></div></div>`;
     document.getElementById('runs-create').onclick = () => navigate('/create');
     document.querySelectorAll('[data-run]').forEach(card => card.onclick = () => openRun(card.dataset.run));

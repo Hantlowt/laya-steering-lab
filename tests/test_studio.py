@@ -1,3 +1,4 @@
+import json
 import stat
 
 from fastapi.testclient import TestClient
@@ -5,6 +6,7 @@ from fastapi.testclient import TestClient
 from laya_steering.dashboard import create_app
 from laya_steering.generation import infer_task
 from laya_steering.providers import StaticProvider
+from laya_steering.store import ExperimentStore, now_iso
 from laya_steering.studio import ProviderConfig, StudioService
 
 
@@ -16,7 +18,9 @@ def test_studio_shell_and_assets(tmp_path):
     assert "<pre>" not in shell.text
     assert client.get("/create").status_code == 200
     assert client.get("/runs").status_code == 200
+    assert client.get("/library").status_code == 200
     assert "New specialization" in client.get("/static/app.js").text
+    assert "Model library" in client.get("/static/app.js").text
     assert "--teal" in client.get("/static/app.css").text
     assert client.get("/api/runs").json() == []
 
@@ -66,3 +70,41 @@ def test_task_labels_can_be_inferred():
     )
     assert task.decision.labels == ["ALLOW", "BLOCK"]
     assert "Infer 2 to 6" in record.prompt
+
+
+def test_library_names_and_kept_methods_are_persistent(tmp_path):
+    store = ExperimentStore(tmp_path / "lab.sqlite3")
+    store.create_run(
+        {
+            "id": "run-1",
+            "created_at": now_iso(),
+            "status": "completed",
+            "suite_path": str(tmp_path / "suite"),
+            "base_model": "fake/laya",
+            "base_revision": "test",
+            "backend": "fake",
+            "seed": 7,
+            "environment_json": json.dumps({}),
+            "git_commit": None,
+        }
+    )
+    store.add_result(
+        {
+            "run_id": "run-1",
+            "task_name": "ticket_priority",
+            "domain": "support",
+            "strategy": "nearest_prototype",
+            "decision_component": "embedding_classifier",
+            "strategy_params": {},
+            "metrics": {"splits": {"hidden": {"accuracy": 0.8}}},
+            "timings": {},
+        }
+    )
+
+    store.set_run_name("run-1", "Priority Assistant")
+    store.set_result_kept("run-1", "ticket_priority", "nearest_prototype", True)
+
+    run = store.run("run-1")
+    assert run["run"]["display_name"] == "Priority Assistant"
+    assert run["results"][0]["kept"] is True
+    assert store.list_runs()[0]["kept_count"] == 1

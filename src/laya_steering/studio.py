@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import threading
 import traceback
 import uuid
@@ -62,6 +63,7 @@ class GenerateRequest(ApiModel):
 
 
 class RunRequest(ApiModel):
+    name: str | None = Field(default=None, max_length=120)
     task: TaskSpec
     examples: list[dict[str, Any]]
     methods: list[str] = Field(min_length=1)
@@ -69,6 +71,28 @@ class RunRequest(ApiModel):
     model: str = "convaiinnovations/laya"
     device: str | None = "mps"
     seed: int = 0
+
+
+class NameRequest(ApiModel):
+    name: str = Field(min_length=1, max_length=120)
+
+
+class KeepRequest(ApiModel):
+    task: str
+    strategy: str
+    kept: bool
+
+
+class PlaygroundRequest(ApiModel):
+    task: str
+    strategy: str
+    text: str = Field(min_length=1, max_length=20_000)
+
+
+class ExportResultRequest(ApiModel):
+    task: str
+    strategy: str
+    name: str | None = Field(default=None, max_length=120)
 
 
 @dataclass
@@ -343,6 +367,8 @@ class StudioService:
                 request.seed,
                 batch_size=64,
             )
+            display_name = (request.name or request.task.name.replace("_", " ")).strip()
+            self.store.set_run_name(run_id, display_name)
             update(82, "Selecting the best result", "Ranking by hidden test, then latency.")
             data = self.store.run(run_id)
             ranked = sorted(
@@ -355,6 +381,7 @@ class StudioService:
             if not ranked:
                 raise RuntimeError("no strategy produced an exportable result")
             best = ranked[0]
+            self.store.set_result_kept(run_id, request.task.name, best["strategy"], True)
             specialization_id = f"{run_id}:{request.task.name}:{best['strategy']}"
             stored = self.store.specialization(specialization_id)
             task, fitted = load_saved_fitted(Path(stored["artifact_path"]), backend)
@@ -400,9 +427,55 @@ class StudioService:
                 "ranking": public_ranking,
                 "export_path": str(export_path.resolve()),
                 "specialization_id": specialization_id,
+                "display_name": display_name,
             }
 
         return self.jobs.start("run", work)
+
+    def library_run(self, run_id: str) -> dict[str, Any]:
+        data = self.store.run(run_id)
+        _manifest, tasks, splits = load_suite(Path(data["run"]["suite_path"]))
+        examples = [
+            row.model_dump(mode="json", exclude_none=True)
+            for split in ("hidden", "paraphrase", "hard", "validation")
+            for row in splits[split]
+        ]
+        return {
+            **data,
+            "tasks": [task.model_dump(mode="json") for task in tasks],
+            "examples": examples,
+        }
+
+    def predict_result(self, run_id: str, request: PlaygroundRequest) -> dict[str, Any]:
+        data = self.store.run(run_id)
+        specialization_id = f"{run_id}:{request.task}:{request.strategy}"
+        stored = self.store.specialization(specialization_id)
+        device = "mps" if data["run"]["backend"] == "pytorch" else None
+        backend = self._backend(data["run"]["backend"], data["run"]["base_model"], device)
+        _task, fitted = load_saved_fitted(Path(stored["artifact_path"]), backend)
+        return fitted.predict([request.text])[0]
+
+    def export_result(self, run_id: str, request: ExportResultRequest) -> str:
+        data = self.store.run(run_id)
+        stored = self.store.specialization(f"{run_id}:{request.task}:{request.strategy}")
+        device = "mps" if data["run"]["backend"] == "pytorch" else None
+        backend = self._backend(data["run"]["backend"], data["run"]["base_model"], device)
+        task, fitted = load_saved_fitted(Path(stored["artifact_path"]), backend)
+        label = request.name or data["run"].get("display_name") or task.name
+        slug = re.sub(r"[^a-zA-Z0-9_.-]+", "-", label).strip("-").lower() or task.name
+        export_path = self.exports / f"{slug}-{request.strategy}-{run_id[-8:]}"
+        if not export_path.exists():
+            _manifest, _tasks, splits = load_suite(Path(data["run"]["suite_path"]))
+            probes = [row.input for row in splits["hidden"] if row.task_name == request.task][:10]
+            export_specialization(
+                export_path,
+                name=label,
+                task=task,
+                fitted=fitted,
+                backend=backend,
+                probes=probes,
+            )
+        return export_path.name
 
     def draft(self, draft_id: str) -> dict[str, Any]:
         _, tasks, splits = load_suite(self.drafts / draft_id)

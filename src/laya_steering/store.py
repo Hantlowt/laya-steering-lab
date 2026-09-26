@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS runs (
   backend TEXT NOT NULL,
   seed INTEGER NOT NULL,
   environment_json TEXT NOT NULL,
-  git_commit TEXT
+  git_commit TEXT,
+  display_name TEXT
 );
 CREATE TABLE IF NOT EXISTS results (
   run_id TEXT NOT NULL REFERENCES runs(id),
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS results (
   strategy_params_json TEXT NOT NULL,
   metrics_json TEXT NOT NULL,
   timings_json TEXT NOT NULL,
+  kept INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (run_id, task_name, strategy)
 );
 CREATE TABLE IF NOT EXISTS predictions (
@@ -64,6 +66,16 @@ class ExperimentStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             db.executescript(SCHEMA)
+            self._migrate(db)
+
+    @staticmethod
+    def _migrate(db: sqlite3.Connection) -> None:
+        run_columns = {row[1] for row in db.execute("PRAGMA table_info(runs)")}
+        if "display_name" not in run_columns:
+            db.execute("ALTER TABLE runs ADD COLUMN display_name TEXT")
+        result_columns = {row[1] for row in db.execute("PRAGMA table_info(results)")}
+        if "kept" not in result_columns:
+            db.execute("ALTER TABLE results ADD COLUMN kept INTEGER NOT NULL DEFAULT 0")
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
@@ -87,6 +99,7 @@ class ExperimentStore:
             "seed",
             "environment_json",
             "git_commit",
+            "display_name",
         )
         with self.connect() as db:
             db.execute(
@@ -98,10 +111,25 @@ class ExperimentStore:
         with self.connect() as db:
             db.execute("UPDATE runs SET status=? WHERE id=?", (status, run_id))
 
+    def set_run_name(self, run_id: str, name: str) -> None:
+        with self.connect() as db:
+            db.execute("UPDATE runs SET display_name=? WHERE id=?", (name.strip()[:120], run_id))
+
+    def set_result_kept(self, run_id: str, task: str, strategy: str, kept: bool) -> None:
+        with self.connect() as db:
+            cursor = db.execute(
+                "UPDATE results SET kept=? WHERE run_id=? AND task_name=? AND strategy=?",
+                (int(kept), run_id, task, strategy),
+            )
+            if not cursor.rowcount:
+                raise KeyError(f"unknown result {run_id}:{task}:{strategy}")
+
     def add_result(self, row: dict[str, Any]) -> None:
         with self.connect() as db:
             db.execute(
-                """INSERT OR REPLACE INTO results VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT OR REPLACE INTO results
+                (run_id,task_name,domain,strategy,decision_component,strategy_params_json,
+                 metrics_json,timings_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     row["run_id"],
                     row["task_name"],
@@ -168,8 +196,10 @@ class ExperimentStore:
     def list_runs(self) -> list[dict[str, Any]]:
         with self.connect() as db:
             rows = db.execute(
-                """SELECT r.*, COUNT(x.task_name) result_count FROM runs r
-                LEFT JOIN results x ON x.run_id=r.id GROUP BY r.id ORDER BY r.created_at DESC"""
+                """SELECT r.*, COUNT(x.task_name) result_count,
+                MIN(x.task_name) primary_task, SUM(COALESCE(x.kept,0)) kept_count
+                FROM runs r LEFT JOIN results x ON x.run_id=r.id
+                GROUP BY r.id ORDER BY r.created_at DESC"""
             ).fetchall()
         return [dict(x) for x in rows]
 
@@ -192,6 +222,7 @@ def _decode_result(row: dict[str, Any]) -> dict[str, Any]:
     row["strategy_params"] = json.loads(row.pop("strategy_params_json"))
     row["metrics"] = json.loads(row.pop("metrics_json"))
     row["timings"] = json.loads(row.pop("timings_json"))
+    row["kept"] = bool(row.get("kept", 0))
     return row
 
 

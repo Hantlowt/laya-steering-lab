@@ -137,6 +137,12 @@ Open `http://127.0.0.1:8787`, then:
 5. edit individual examples and labels without touching JSON;
 6. compare selected methods on real frozen Laya and download the best fidelity-checked artifact.
 
+Every completed experiment also appears in the **Model library**. Give a variant a readable name,
+keep or remove individual methods from your shortlist, and export any method—not only the winner.
+The built-in Playground starts from hidden, paraphrase, hard, or validation examples. You can alter
+their wording and run the edited text against a selected specialization; scratchpad edits are never
+written back to the benchmark, so the original evidence remains reproducible.
+
 API keys are never written to the experiment store, generated suite, logs, or browser local
 storage. By default they stay in process memory. The connection form also offers an explicit
 **Save this connection to `.env`** option; the server writes the local, Git-ignored file with
