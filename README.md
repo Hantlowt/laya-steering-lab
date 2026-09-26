@@ -250,14 +250,13 @@ To add a Laya runtime, implement `LayaBackend` in `src/laya_steering/backends.py
 and decisions wherever possible. Only advertise activation steering if a stable, inspectable
 intervention before the original decision head exists.
 
-## Checked-in smoke experiment
+## Local smoke experiment
 
 `benchmarks/smoke` contains ten human-authored fixture tasks across five domains. It exists for CI
-and plumbing—not as scientific evidence. A real run was executed locally with the deterministic
-fake backend because neither `laya`/weights nor `laya-mlx` was installed. Results are preserved in
-`experiments/` under run `20260925T072549Z-5726025d`; `experiments/smoke-report.json` contains 81
-task/strategy results. Activation steering was correctly skipped, and contrastive vectors ran only
-on the binary task. Do not interpret fake-backend scores as evidence about Laya.
+and plumbing—not as scientific evidence. Experiment databases, generated datasets, fitted vectors,
+and exports are written under `experiments/` locally and are intentionally ignored by Git. Every
+user therefore creates and owns their own results; no personal or machine-specific experiment data
+is shipped with the repository.
 
 Run the missing real-checkpoint experiment exactly with:
 

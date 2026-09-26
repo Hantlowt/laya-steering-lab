@@ -9,7 +9,5 @@ dist/
 build/
 *.egg-info/
 artifacts/cache/
-experiments/*.sqlite3-shm
-experiments/*.sqlite3-wal
-experiments/studio/exports/.*-download.zip
+/experiments/
 /exports/
