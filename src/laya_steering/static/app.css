@@ -183,29 +183,47 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
 .model-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: var(--nav); color: var(--lime); font: 800 20px 'Avenir Next', system-ui; }
 .model-card h2 { margin-bottom: 5px; font-size: 20px; }
 .model-card > p { color: var(--muted); font-size: 13px; }
-.model-card .btn { margin-top: auto; align-self: flex-start; }
+.default-method { margin-top: 16px; padding: 11px 12px; border-radius: 11px; background: var(--teal-soft); }
+.default-method small, .default-method strong { display: block; }
+.default-method small { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.default-method strong { margin-top: 3px; color: var(--teal-dark); font-size: 13px; }
 .model-meta { display: flex; gap: 8px; margin: 18px 0; }
 .model-meta span { padding: 5px 8px; border-radius: 8px; background: #f0f3ef; color: var(--muted); font-size: 11px; }
-.library-detail { margin-top: 26px; scroll-margin-top: 24px; }
+.model-actions { display: grid; grid-template-columns: auto 1fr; gap: 8px; margin-top: auto; }
+.model-actions .btn { padding: 10px 12px; font-size: 12px; }
+.back-link { display: block; margin: 0 0 20px; padding: 0; border: 0; background: none; color: var(--teal); font-weight: 800; cursor: pointer; }
 .library-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .library-header > div { width: min(760px, calc(100% - 55px)); }
+.library-header label { display: block; margin-bottom: 7px; font-size: 13px; font-weight: 700; }
 .library-header p { margin-top: 8px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .rename-row { display: flex; gap: 9px; margin-top: 9px; }
 .rename-row input { font: 800 24px 'Avenir Next', system-ui; background: white; }
-.studio-columns { display: grid; grid-template-columns: minmax(0, 1.16fr) minmax(330px, .84fr); gap: 18px; margin-top: 18px; align-items: start; }
+.method-panel { margin-top: 18px; }
 .method-library { display: grid; gap: 9px; }
-.library-method { display: grid; grid-template-columns: 95px minmax(145px, 1fr) auto auto auto; gap: 11px; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 13px; background: #fbfcfa; }
+.library-method { display: grid; grid-template-columns: 95px minmax(155px, 1fr) 82px auto auto auto; gap: 9px; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 13px; background: #fbfcfa; }
 .library-method.kept { border-color: #78b5a4; box-shadow: inset 3px 0 var(--teal); background: #f7fcf9; }
+.library-method.default { border-color: var(--teal); background: #f0faf6; box-shadow: inset 4px 0 var(--teal); }
 .library-method h3 { font-size: 14px; }
 .library-method p { margin-top: 3px; color: var(--muted); font-size: 11px; }
 .library-method .btn { padding: 9px 11px; font-size: 12px; }
 .method-score strong, .method-score small { display: block; }
 .method-score strong { color: var(--teal-dark); font: 800 18px 'Avenir Next', system-ui; }
 .method-score small { color: var(--muted); font-size: 9px; }
-.playground { position: sticky; top: 20px; }
-.playground textarea { min-height: 150px; }
+.method-status { min-height: 24px; }
+.playground-controls { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(180px, .7fr); gap: 16px; align-items: end; }
+.default-callout { min-height: 66px; padding: 11px 14px; border-radius: 12px; background: var(--nav); color: white; }
+.default-callout span, .default-callout strong, .default-callout small { display: block; }
+.default-callout span, .default-callout small { color: #9eb4ae; font-size: 10px; }
+.default-callout strong { margin: 2px 0; color: var(--lime); font-size: 14px; }
+.playground-workspace { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 24px; align-items: stretch; }
+.play-editor { display: grid; gap: 16px; align-content: start; }
+.play-editor textarea { min-height: 220px; }
 .play-result { margin-top: 16px; padding: 16px; border-radius: 13px; background: #f4f8f5; border: 1px solid var(--line); }
-.play-result.empty { padding: 28px 16px; }
+.playground-workspace .play-result { margin-top: 0; }
+.play-result.empty { display: grid; place-items: center; padding: 28px 16px; }
+.play-result.empty div { text-align: center; color: var(--muted); }
+.play-result.empty strong { color: var(--ink); }
+.play-result.empty p { margin: 6px 0 0; font-size: 13px; }
 .prediction-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .prediction-head span { color: var(--muted); font-size: 12px; }
 .prediction-head strong { padding: 6px 10px; border-radius: 9px; background: var(--nav); color: var(--lime); }
@@ -227,19 +245,20 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
   .sidebar-note { justify-content: center; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .two-col { grid-template-columns: 1fr; }
-  .studio-columns { grid-template-columns: 1fr; }
-  .playground { position: static; }
+  .playground-controls, .playground-workspace { grid-template-columns: 1fr; }
   .rank-row { grid-template-columns: 30px 1fr 70px; }
   .rank-row .bar-track, .rank-row .latency { display: none; }
   .library-method { grid-template-columns: 82px 1fr auto; }
-  .library-method > .badge, .library-method > span:empty { display: none; }
+  .library-method .method-status { grid-column: 3; }
+  .library-method .action-placeholder { display: none; }
+  .library-method .btn { width: 100%; }
 }
 
 @media (max-width: 620px) {
   .app-shell { display: block; }
   .sidebar { position: fixed; bottom: 0; top: auto; width: 100%; height: 67px; padding: 8px 12px; flex-direction: row; align-items: center; }
   .brand, .sidebar-note { display: none; }
-  .sidebar nav { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); }
+  .sidebar nav { width: 100%; display: grid; grid-template-columns: repeat(5, 1fr); }
   .sidebar nav a, .sidebar nav a:not(.active) { font-size: 10px; flex-direction: column; gap: 1px; padding: 6px; }
   .sidebar nav a.active { box-shadow: inset 0 2px var(--lime); }
   main { padding: 25px 16px 95px; }
@@ -254,5 +273,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--teal); box-shado
   .rename-row { align-items: stretch; flex-direction: column; }
   .rename-row input { font-size: 20px; }
   .library-method { grid-template-columns: 72px 1fr; }
+  .library-method .method-status { grid-column: auto; }
   .library-method .btn { width: 100%; }
+  .model-actions { grid-template-columns: 1fr; }
 }

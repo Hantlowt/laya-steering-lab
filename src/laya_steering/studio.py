@@ -83,6 +83,11 @@ class KeepRequest(ApiModel):
     kept: bool
 
 
+class DefaultRequest(ApiModel):
+    task: str
+    strategy: str
+
+
 class PlaygroundRequest(ApiModel):
     task: str
     strategy: str
@@ -381,7 +386,7 @@ class StudioService:
             if not ranked:
                 raise RuntimeError("no strategy produced an exportable result")
             best = ranked[0]
-            self.store.set_result_kept(run_id, request.task.name, best["strategy"], True)
+            self.store.set_result_default(run_id, request.task.name, best["strategy"])
             specialization_id = f"{run_id}:{request.task.name}:{best['strategy']}"
             stored = self.store.specialization(specialization_id)
             task, fitted = load_saved_fitted(Path(stored["artifact_path"]), backend)

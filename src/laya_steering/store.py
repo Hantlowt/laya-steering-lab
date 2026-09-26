@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS results (
   metrics_json TEXT NOT NULL,
   timings_json TEXT NOT NULL,
   kept INTEGER NOT NULL DEFAULT 0,
+  is_default INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (run_id, task_name, strategy)
 );
 CREATE TABLE IF NOT EXISTS predictions (
@@ -76,6 +77,27 @@ class ExperimentStore:
         result_columns = {row[1] for row in db.execute("PRAGMA table_info(results)")}
         if "kept" not in result_columns:
             db.execute("ALTER TABLE results ADD COLUMN kept INTEGER NOT NULL DEFAULT 0")
+        if "is_default" not in result_columns:
+            db.execute("ALTER TABLE results ADD COLUMN is_default INTEGER NOT NULL DEFAULT 0")
+        groups = db.execute("SELECT DISTINCT run_id, task_name FROM results").fetchall()
+        for run_id, task_name in groups:
+            has_default = db.execute(
+                "SELECT 1 FROM results WHERE run_id=? AND task_name=? AND is_default=1 LIMIT 1",
+                (run_id, task_name),
+            ).fetchone()
+            if has_default:
+                continue
+            rows = db.execute(
+                "SELECT strategy, metrics_json FROM results WHERE run_id=? AND task_name=?",
+                (run_id, task_name),
+            ).fetchall()
+            if rows:
+                best = max(rows, key=lambda row: _hidden_accuracy(row[1]))[0]
+                db.execute(
+                    "UPDATE results SET is_default=1, kept=1 "
+                    "WHERE run_id=? AND task_name=? AND strategy=?",
+                    (run_id, task_name, best),
+                )
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
@@ -117,12 +139,37 @@ class ExperimentStore:
 
     def set_result_kept(self, run_id: str, task: str, strategy: str, kept: bool) -> None:
         with self.connect() as db:
+            current = db.execute(
+                "SELECT is_default FROM results WHERE run_id=? AND task_name=? AND strategy=?",
+                (run_id, task, strategy),
+            ).fetchone()
+            if current is None:
+                raise KeyError(f"unknown result {run_id}:{task}:{strategy}")
+            if not kept and current[0]:
+                raise ValueError("Choose another default method before removing this one")
             cursor = db.execute(
                 "UPDATE results SET kept=? WHERE run_id=? AND task_name=? AND strategy=?",
                 (int(kept), run_id, task, strategy),
             )
             if not cursor.rowcount:
                 raise KeyError(f"unknown result {run_id}:{task}:{strategy}")
+
+    def set_result_default(self, run_id: str, task: str, strategy: str) -> None:
+        with self.connect() as db:
+            exists = db.execute(
+                "SELECT 1 FROM results WHERE run_id=? AND task_name=? AND strategy=?",
+                (run_id, task, strategy),
+            ).fetchone()
+            if exists is None:
+                raise KeyError(f"unknown result {run_id}:{task}:{strategy}")
+            db.execute(
+                "UPDATE results SET is_default=0 WHERE run_id=? AND task_name=?", (run_id, task)
+            )
+            db.execute(
+                "UPDATE results SET is_default=1, kept=1 "
+                "WHERE run_id=? AND task_name=? AND strategy=?",
+                (run_id, task, strategy),
+            )
 
     def add_result(self, row: dict[str, Any]) -> None:
         with self.connect() as db:
@@ -197,7 +244,10 @@ class ExperimentStore:
         with self.connect() as db:
             rows = db.execute(
                 """SELECT r.*, COUNT(x.task_name) result_count,
-                MIN(x.task_name) primary_task, SUM(COALESCE(x.kept,0)) kept_count
+                COUNT(DISTINCT x.task_name) task_count,
+                MIN(x.task_name) primary_task, SUM(COALESCE(x.kept,0)) kept_count,
+                MAX(CASE WHEN x.is_default=1 THEN x.strategy END) default_strategy,
+                MAX(CASE WHEN x.is_default=1 THEN x.task_name END) default_task
                 FROM runs r LEFT JOIN results x ON x.run_id=r.id
                 GROUP BY r.id ORDER BY r.created_at DESC"""
             ).fetchall()
@@ -223,7 +273,20 @@ def _decode_result(row: dict[str, Any]) -> dict[str, Any]:
     row["metrics"] = json.loads(row.pop("metrics_json"))
     row["timings"] = json.loads(row.pop("timings_json"))
     row["kept"] = bool(row.get("kept", 0))
+    row["is_default"] = bool(row.get("is_default", 0))
     return row
+
+
+def _hidden_accuracy(raw_metrics: str) -> float:
+    try:
+        metrics = json.loads(raw_metrics)
+        return float(
+            metrics.get("splits", {})
+            .get("hidden", {})
+            .get("accuracy", metrics.get("overall", {}).get("accuracy", -1))
+        )
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return -1.0
 
 
 def now_iso() -> str:

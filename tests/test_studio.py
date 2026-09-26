@@ -1,6 +1,7 @@
 import json
 import stat
 
+import pytest
 from fastapi.testclient import TestClient
 
 from laya_steering.dashboard import create_app
@@ -19,6 +20,7 @@ def test_studio_shell_and_assets(tmp_path):
     assert client.get("/create").status_code == 200
     assert client.get("/runs").status_code == 200
     assert client.get("/library").status_code == 200
+    assert client.get("/playground").status_code == 200
     assert "New specialization" in client.get("/static/app.js").text
     assert "Model library" in client.get("/static/app.js").text
     assert "--teal" in client.get("/static/app.css").text
@@ -102,9 +104,14 @@ def test_library_names_and_kept_methods_are_persistent(tmp_path):
     )
 
     store.set_run_name("run-1", "Priority Assistant")
-    store.set_result_kept("run-1", "ticket_priority", "nearest_prototype", True)
+    store.set_result_default("run-1", "ticket_priority", "nearest_prototype")
 
     run = store.run("run-1")
     assert run["run"]["display_name"] == "Priority Assistant"
     assert run["results"][0]["kept"] is True
+    assert run["results"][0]["is_default"] is True
     assert store.list_runs()[0]["kept_count"] == 1
+    assert store.list_runs()[0]["task_count"] == 1
+    assert store.list_runs()[0]["default_strategy"] == "nearest_prototype"
+    with pytest.raises(ValueError, match="another default"):
+        store.set_result_kept("run-1", "ticket_priority", "nearest_prototype", False)

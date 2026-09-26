@@ -138,10 +138,12 @@ Open `http://127.0.0.1:8787`, then:
 6. compare selected methods on real frozen Laya and download the best fidelity-checked artifact.
 
 Every completed experiment also appears in the **Model library**. Give a variant a readable name,
-keep or remove individual methods from your shortlist, and export any method—not only the winner.
-The built-in Playground starts from hidden, paraphrase, hard, or validation examples. You can alter
-their wording and run the edited text against a selected specialization; scratchpad edits are never
-written back to the benchmark, so the original evidence remains reproducible.
+keep or remove individual methods from your shortlist, choose its default method (the best hidden
+score is selected initially), and export any method—not only the winner. The separate **Playground**
+tab can open a specialization directly from its library card, switch models or methods, and start
+from hidden, paraphrase, hard, or validation examples. You can alter their wording and run the
+edited text; scratchpad edits are never written back to the benchmark, so the original evidence
+remains reproducible.
 
 API keys are never written to the experiment store, generated suite, logs, or browser local
 storage. By default they stay in process memory. The connection form also offers an explicit

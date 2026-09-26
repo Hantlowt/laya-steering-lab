@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .store import ExperimentStore
 from .studio import (
+    DefaultRequest,
     ExportResultRequest,
     GenerateRequest,
     KeepRequest,
@@ -36,6 +37,7 @@ def create_app(database: Path):
     @app.get("/create", response_class=HTMLResponse)
     @app.get("/runs", response_class=HTMLResponse)
     @app.get("/library", response_class=HTMLResponse)
+    @app.get("/playground", response_class=HTMLResponse)
     def shell():
         return _shell()
 
@@ -116,7 +118,17 @@ def create_app(database: Path):
             store.set_result_kept(run_id, request.task, request.strategy, request.kept)
         except KeyError as exc:
             raise HTTPException(404, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
         return {"kept": request.kept}
+
+    @app.post("/api/library/runs/{run_id}/default")
+    def default_result(run_id: str, request: DefaultRequest):
+        try:
+            store.set_result_default(run_id, request.task, request.strategy)
+        except KeyError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        return {"strategy": request.strategy}
 
     @app.post("/api/library/runs/{run_id}/predict")
     def playground_predict(run_id: str, request: PlaygroundRequest):
@@ -166,6 +178,7 @@ def _shell() -> str:
         <a href="/" data-nav="home"><span class="nav-icon">⌂</span>Overview</a>
         <a href="/create" data-nav="create"><span class="nav-icon">✦</span>New specialization</a>
         <a href="/library" data-nav="library"><span class="nav-icon">▦</span>Model library</a>
+        <a href="/playground" data-nav="playground"><span class="nav-icon">▷</span>Playground</a>
         <a href="/runs" data-nav="runs"><span class="nav-icon">◫</span>Experiments</a>
       </nav>
       <div class="sidebar-note">

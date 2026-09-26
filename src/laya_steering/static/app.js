@@ -99,7 +99,12 @@ async function route() {
     await renderRuns();
   } else if (location.pathname === '/library') {
     setNav('library');
-    await renderLibrary();
+    const runId = new URLSearchParams(location.search).get('run');
+    if (runId) await openLibraryRun(runId);
+    else await renderLibrary();
+  } else if (location.pathname === '/playground') {
+    setNav('playground');
+    await renderPlayground();
   } else {
     setNav('home');
     await renderHome();
@@ -413,7 +418,7 @@ function renderResults() {
     <div class="form-actions"><button class="btn btn-secondary" id="view-run">Inspect experiment</button><button class="btn btn-secondary" id="open-library">Open model library</button><button class="btn btn-primary" id="new-specialization">Create another specialization</button></div>
   </div>`;
   document.getElementById('view-run').onclick = () => { navigate('/runs'); setTimeout(() => openRun(result.run_id), 80); };
-  document.getElementById('open-library').onclick = () => { navigate('/library'); setTimeout(() => openLibraryRun(result.run_id), 80); };
+  document.getElementById('open-library').onclick = () => navigate(`/library?run=${encodeURIComponent(result.run_id)}`);
   document.getElementById('new-specialization').onclick = () => { Object.assign(state,{config:null,task:null,draftId:null,splits:null,result:null}); renderCreate(); };
 }
 
@@ -436,68 +441,65 @@ function hiddenScore(row) {
 async function renderLibrary() {
   app.innerHTML = `<div class="page-loading">Loading model library…</div>`;
   try {
-    const runs = (await api('/api/runs')).filter(run => run.status === 'completed');
+    const runs = (await api('/api/runs')).filter(run => run.status === 'completed' && run.task_count === 1);
     app.innerHTML = `<div class="page">
-      <div class="page-head compact"><div><div class="eyebrow">Your Laya variants</div><h1>Model library</h1><p class="lede">Name, compare, test, and export your specializations without dealing with run IDs or raw files.</p></div><button class="btn btn-primary" id="library-create">＋ New specialization</button></div>
+      <div class="page-head compact"><div><div class="eyebrow">Your Laya variants</div><h1>Model library</h1><p class="lede">Name each specialization, choose its default method, and open it directly in the Playground.</p></div><button class="btn btn-primary" id="library-create">＋ New specialization</button></div>
       <div class="library-grid">${runs.map(run => `<article class="model-card" data-library-run="${esc(run.id)}">
-        <div class="model-card-top"><span class="model-icon">L</span><span class="badge">${run.kept_count ? `${run.kept_count} saved` : 'Choose models'}</span></div>
+        <div class="model-card-top"><span class="model-icon">L</span><span class="badge">${run.kept_count || 1} saved</span></div>
         <h2>${esc(friendlyRunName(run))}</h2><p>${esc(run.primary_task || 'Laya specialization').replaceAll('_',' ')}</p>
-        <div class="model-meta"><span>${esc(run.backend)}</span><span>${run.result_count} methods</span></div>
-        <button class="btn btn-secondary">Open studio →</button>
+        <div class="default-method"><small>Default method</small><strong>${humanMethod(run.default_strategy || 'baseline')}</strong></div>
+        <div class="model-meta"><span>${esc(run.backend)}</span><span>${run.result_count} tested methods</span></div>
+        <div class="model-actions"><button class="btn btn-secondary" data-manage-run="${esc(run.id)}">Manage</button><button class="btn btn-primary" data-play-run="${esc(run.id)}" data-strategy="${esc(run.default_strategy || '')}">Open in Playground</button></div>
       </article>`).join('') || '<div class="card empty">No variants yet. Create your first specialization to start the library.</div>'}</div>
-      <div id="library-detail"></div>
     </div>`;
     document.getElementById('library-create').onclick = () => navigate('/create');
-    document.querySelectorAll('[data-library-run]').forEach(card => card.onclick = () => openLibraryRun(card.dataset.libraryRun));
+    document.querySelectorAll('[data-manage-run]').forEach(button => button.onclick = () => navigate(`/library?run=${encodeURIComponent(button.dataset.manageRun)}`));
+    document.querySelectorAll('[data-play-run]').forEach(button => button.onclick = () => navigate(`/playground?run=${encodeURIComponent(button.dataset.playRun)}&strategy=${encodeURIComponent(button.dataset.strategy)}`));
   } catch (error) { app.innerHTML = `<div class="page"><div class="error-panel">${esc(error.message)}</div></div>`; }
 }
 
 async function openLibraryRun(runId) {
-  const target = document.getElementById('library-detail');
-  if (!target) return;
-  target.innerHTML = `<section class="card progress-card"><div class="orb">L</div><p>Opening variant…</p></section>`;
+  app.innerHTML = `<div class="page-loading">Opening variant…</div>`;
   try {
     const data = await api(`/api/library/runs/${encodeURIComponent(runId)}`);
     const runName = data.run.display_name || (data.tasks[0]?.name || runId).replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
     const ranked = [...data.results].sort((a,b) => hiddenScore(b) - hiddenScore(a));
-    const first = ranked.find(row => row.kept) || ranked[0];
-    const relevantExamples = data.examples.filter(row => row.task_name === first.task_name);
-    target.innerHTML = `<section class="library-detail">
-      <div class="card library-header">
-        <div><div class="eyebrow">Variant workspace</div><div class="rename-row"><input id="library-name" value="${esc(runName)}" maxlength="120"><button class="btn btn-secondary" id="save-library-name">Save name</button></div><p>${esc(data.run.base_model)} · ${esc(data.run.backend)} · ${esc(runId)}</p></div>
-        <button class="icon-btn" id="close-library" aria-label="Close">×</button>
-      </div>
-      <div class="studio-columns">
-        <section class="card"><div class="section-head"><div><h2>Methods</h2><p>Keep only the variants you want in your library. Experiment data is never deleted.</p></div></div>
-          <div class="method-library">${ranked.map((row, index) => `<article class="library-method ${row.kept ? 'kept' : ''}">
+    const currentDefault = ranked.find(row => row.is_default) || ranked[0];
+    app.innerHTML = `<div class="page">
+      <div class="page-head compact"><div><button class="back-link" id="back-library">← Model library</button><div class="eyebrow">Specialization settings</div><h1>${esc(runName)}</h1><p class="lede">Choose which tested methods matter and which one should be used by default.</p></div><button class="btn btn-primary" id="detail-play">Open in Playground →</button></div>
+      <section class="card library-header"><div><label for="library-name">Specialization name</label><div class="rename-row"><input id="library-name" value="${esc(runName)}" maxlength="120"><button class="btn btn-secondary" id="save-library-name">Save name</button></div><p>${esc(data.run.base_model)} · ${esc(data.run.backend)}</p></div></section>
+      <section class="card method-panel"><div class="section-head"><div><h2>Tested methods</h2><p>The best hidden-test score is selected by default. Change it explicitly whenever another method is a better fit.</p></div><span class="badge">${ranked.length} methods</span></div>
+          <div class="method-library">${ranked.map((row, index) => `<article class="library-method ${row.kept ? 'kept' : ''} ${row.is_default ? 'default' : ''}">
             <div class="method-score"><strong>${fmt(hiddenScore(row))}</strong><small>hidden accuracy</small></div>
             <div><h3>${humanMethod(row.strategy)}</h3><p>${componentLabel(row.decision_component)}</p></div>
-            ${index === 0 ? '<span class="badge">Best score</span>' : '<span></span>'}
-            <button class="btn ${row.kept ? 'btn-danger' : 'btn-secondary'}" data-keep-method="${esc(row.strategy)}" data-task="${esc(row.task_name)}" data-kept="${row.kept}">${row.kept ? 'Remove' : 'Keep model'}</button>
+            <div class="method-status">${row.is_default ? '<span class="badge">Default</span>' : index === 0 ? '<span class="badge">Best score</span>' : ''}</div>
+            ${row.is_default ? '<span class="action-placeholder"></span>' : `<button class="btn btn-secondary" data-default-method="${esc(row.strategy)}" data-task="${esc(row.task_name)}">Set as default</button>`}
+            ${row.is_default ? '<span class="action-placeholder"></span>' : `<button class="btn ${row.kept ? 'btn-danger' : 'btn-secondary'}" data-keep-method="${esc(row.strategy)}" data-task="${esc(row.task_name)}" data-kept="${row.kept}">${row.kept ? 'Remove' : 'Keep'}</button>`}
             <button class="btn btn-ghost" data-export-method="${esc(row.strategy)}" data-task="${esc(row.task_name)}">Export</button>
           </article>`).join('')}</div>
-        </section>
-        <section class="card playground"><div class="section-head"><div><h2>Playground</h2><p>Start from a benchmark example, edit it freely, and run without saving changes.</p></div><span class="badge">Scratchpad</span></div>
-          <div class="field"><label for="play-method">Model method</label><select id="play-method">${ranked.map(row => `<option value="${esc(row.strategy)}" data-task="${esc(row.task_name)}" ${row.strategy === first.strategy ? 'selected' : ''}>${humanMethod(row.strategy)}</option>`).join('')}</select></div>
-          <div class="field"><label for="play-example">Benchmark starting point</label><select id="play-example">${relevantExamples.map((row,i) => `<option value="${i}">${esc(splitMeta[row.split]?.[0] || row.split)} · ${esc(row.label)} · ${esc(row.input.slice(0,70))}</option>`).join('')}</select></div>
-          <div class="field"><label for="play-text">Input</label><textarea id="play-text">${esc(relevantExamples[0]?.input || '')}</textarea><span class="hint" id="play-expected">Expected in benchmark: ${esc(relevantExamples[0]?.label || '—')}</span></div>
-          <button class="btn btn-primary btn-lg" id="play-run">Run this example →</button>
-          <div id="play-result" class="play-result empty">The prediction will appear here.</div>
-        </section>
-      </div>
-    </section>`;
-    document.getElementById('close-library').onclick = () => target.innerHTML = '';
+      </section>
+    </div>`;
+    document.getElementById('back-library').onclick = () => navigate('/library');
+    document.getElementById('detail-play').onclick = () => navigate(`/playground?run=${encodeURIComponent(runId)}&strategy=${encodeURIComponent(currentDefault.strategy)}`);
     document.getElementById('save-library-name').onclick = async () => {
       const name = document.getElementById('library-name').value.trim();
       if (!name) return;
       await api(`/api/library/runs/${encodeURIComponent(runId)}/name`, {method:'POST',body:JSON.stringify({name})});
       toast('Variant name saved');
+      document.querySelector('.page-head h1').textContent = name;
     };
+    document.querySelectorAll('[data-default-method]').forEach(button => button.onclick = async () => {
+      await api(`/api/library/runs/${encodeURIComponent(runId)}/default`, {method:'POST',body:JSON.stringify({task:button.dataset.task,strategy:button.dataset.defaultMethod})});
+      toast(`${humanMethod(button.dataset.defaultMethod)} is now the default`);
+      await openLibraryRun(runId);
+    });
     document.querySelectorAll('[data-keep-method]').forEach(button => button.onclick = async () => {
       const kept = button.dataset.kept !== 'true';
-      await api(`/api/library/runs/${encodeURIComponent(runId)}/keep`, {method:'POST',body:JSON.stringify({task:button.dataset.task,strategy:button.dataset.keepMethod,kept})});
-      toast(kept ? 'Model kept in library' : 'Model removed from library');
-      await openLibraryRun(runId);
+      try {
+        await api(`/api/library/runs/${encodeURIComponent(runId)}/keep`, {method:'POST',body:JSON.stringify({task:button.dataset.task,strategy:button.dataset.keepMethod,kept})});
+        toast(kept ? 'Method kept' : 'Method removed');
+        await openLibraryRun(runId);
+      } catch (error) { toast(error.message, true); }
     });
     document.querySelectorAll('[data-export-method]').forEach(button => button.onclick = async () => {
       button.disabled = true; button.textContent = 'Preparing…';
@@ -506,29 +508,59 @@ async function openLibraryRun(runId) {
         location.href = `/api/studio/exports/${encodeURIComponent(result.export_name)}`;
       } catch (error) { toast(error.message, true); button.disabled = false; button.textContent = 'Export'; }
     });
-    const exampleSelect = document.getElementById('play-example');
-    exampleSelect.onchange = () => {
-      const row = relevantExamples[Number(exampleSelect.value)];
+  } catch (error) { app.innerHTML = `<div class="page"><div class="error-panel">${esc(error.message)}</div></div>`; }
+}
+
+async function renderPlayground() {
+  app.innerHTML = `<div class="page-loading">Preparing Playground…</div>`;
+  try {
+    const runs = (await api('/api/runs')).filter(run => run.status === 'completed' && run.task_count === 1);
+    if (!runs.length) {
+      app.innerHTML = `<div class="page"><div class="page-head compact"><div><div class="eyebrow">Try your specialization</div><h1>Playground</h1></div></div><div class="card empty">Create a specialization before opening the Playground.</div></div>`;
+      return;
+    }
+    const params = new URLSearchParams(location.search);
+    const selectedRun = runs.find(run => run.id === params.get('run')) || runs[0];
+    const data = await api(`/api/library/runs/${encodeURIComponent(selectedRun.id)}`);
+    const ranked = [...data.results].sort((a,b) => hiddenScore(b) - hiddenScore(a));
+    const selectedMethod = ranked.find(row => row.strategy === params.get('strategy')) || ranked.find(row => row.is_default) || ranked[0];
+    const examples = data.examples.filter(row => row.task_name === selectedMethod.task_name);
+    const firstExample = examples[0];
+    app.innerHTML = `<div class="page playground-page">
+      <div class="page-head compact"><div><div class="eyebrow">Live experimentation</div><h1>Playground</h1><p class="lede">Change a benchmark example or write your own text. Scratchpad edits are never saved.</p></div><button class="btn btn-secondary" id="manage-play-model">Manage specialization</button></div>
+      <section class="card playground-controls"><div class="field"><label for="play-run-select">Specialization</label><select id="play-run-select">${runs.map(run => `<option value="${esc(run.id)}" ${run.id === selectedRun.id ? 'selected' : ''}>${esc(friendlyRunName(run))}</option>`).join('')}</select></div><div class="field"><label for="play-method">Method</label><select id="play-method">${ranked.map(row => `<option value="${esc(row.strategy)}" ${row.strategy === selectedMethod.strategy ? 'selected' : ''}>${humanMethod(row.strategy)}${row.is_default ? ' — Default' : ''}</option>`).join('')}</select></div><div class="default-callout"><span>Using</span><strong>${humanMethod(selectedMethod.strategy)}</strong><small>${selectedMethod.is_default ? 'Default for this specialization' : 'Temporary selection'}</small></div></section>
+      <section class="card playground-workspace">
+        <div class="play-editor"><div class="field"><label for="play-example">Start from a benchmark example</label><select id="play-example">${examples.map((row,i) => `<option value="${i}">${esc(splitMeta[row.split]?.[0] || row.split)} · ${esc(row.label)} · ${esc(row.input.slice(0,80))}</option>`).join('')}</select></div><div class="field"><label for="play-text">Input to Laya</label><textarea id="play-text">${esc(firstExample?.input || '')}</textarea><span class="hint" id="play-expected">Expected in benchmark: ${esc(firstExample?.label || '—')}</span></div><button class="btn btn-primary btn-lg" id="play-run">Run this example →</button></div>
+        <div id="play-result" class="play-result empty"><div><strong>No prediction yet</strong><p>Edit the input if you want, then run it through Laya.</p></div></div>
+      </section>
+    </div>`;
+    document.getElementById('manage-play-model').onclick = () => navigate(`/library?run=${encodeURIComponent(selectedRun.id)}`);
+    document.getElementById('play-run-select').onchange = event => navigate(`/playground?run=${encodeURIComponent(event.target.value)}`);
+    document.getElementById('play-method').onchange = event => navigate(`/playground?run=${encodeURIComponent(selectedRun.id)}&strategy=${encodeURIComponent(event.target.value)}`);
+    document.getElementById('play-example').onchange = event => {
+      const row = examples[Number(event.target.value)];
       document.getElementById('play-text').value = row?.input || '';
       document.getElementById('play-expected').textContent = `Expected in benchmark: ${row?.label || '—'}`;
       document.getElementById('play-result').className = 'play-result empty';
-      document.getElementById('play-result').textContent = 'Edit the input, then run it.';
+      document.getElementById('play-result').innerHTML = '<div><strong>No prediction yet</strong><p>Edit the input if you want, then run it through Laya.</p></div>';
     };
     document.getElementById('play-run').onclick = async () => {
       const button = document.getElementById('play-run');
-      const option = document.getElementById('play-method').selectedOptions[0];
-      const payload = {task:option.dataset.task,strategy:option.value,text:document.getElementById('play-text').value.trim()};
-      if (!payload.text) return;
+      const text = document.getElementById('play-text').value.trim();
+      if (!text) return;
       button.disabled = true; button.textContent = 'Laya is deciding…';
       try {
-        const result = await api(`/api/library/runs/${encodeURIComponent(runId)}/predict`, {method:'POST',body:JSON.stringify(payload)});
+        const result = await api(`/api/library/runs/${encodeURIComponent(selectedRun.id)}/predict`, {method:'POST',body:JSON.stringify({task:selectedMethod.task_name,strategy:selectedMethod.strategy,text})});
         document.getElementById('play-result').className = 'play-result';
-        document.getElementById('play-result').innerHTML = `<div class="prediction-head"><span>Prediction</span><strong>${esc(result.label)}</strong></div>${Object.entries(result.probabilities || {}).sort((a,b)=>b[1]-a[1]).map(([label,value]) => `<div class="prob-row"><span>${esc(label)}</span><div class="bar-track"><div class="bar-fill" style="width:${value*100}%"></div></div><strong>${fmt(value)}</strong></div>`).join('')}`;
+        document.getElementById('play-result').innerHTML = predictionMarkup(result);
       } catch (error) { toast(error.message, true); }
       finally { button.disabled = false; button.textContent = 'Run this example →'; }
     };
-    target.scrollIntoView({behavior:'smooth',block:'start'});
-  } catch (error) { target.innerHTML = `<div class="error-panel">${esc(error.message)}</div>`; }
+  } catch (error) { app.innerHTML = `<div class="page"><div class="error-panel">${esc(error.message)}</div></div>`; }
+}
+
+function predictionMarkup(result) {
+  return `<div class="prediction-head"><span>Prediction</span><strong>${esc(result.label)}</strong></div>${Object.entries(result.probabilities || {}).sort((a,b)=>b[1]-a[1]).map(([label,value]) => `<div class="prob-row"><span>${esc(label)}</span><div class="bar-track"><div class="bar-fill" style="width:${value*100}%"></div></div><strong>${fmt(value)}</strong></div>`).join('')}`;
 }
 
 async function renderRuns() {
