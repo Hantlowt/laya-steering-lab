@@ -94,13 +94,10 @@ def generate_specialization(
 Cover every label, varied phrasing and contexts, and many near-boundary cases. These examples will
 construct a classifier and are not a test set. Use only the allowed labels. Return data, not code.
 """
-    response = provider.generate_json(prompt, EXAMPLES_SCHEMA, seed)
-    payload = _ExamplesPayload.model_validate(response.content)
-    rows = _normalize_generated_count(
-        _rows(payload.examples, task, "specialization", "spec", provider.model), task, count
+    rows, records = _collect_examples(
+        provider, task, count, "specialization", "spec", prompt, seed, "specialization"
     )
-    _validate_generated(rows, task, count)
-    return rows, _generation_record(response, "specialization")
+    return rows, _merge_records(records, "specialization")
 
 
 def generate_benchmark_splits(
@@ -128,14 +125,18 @@ Purpose: {split_guidance}.
 This is an independently generated benchmark. Do not imitate training-set templates. Use only the
 allowed labels. Inputs must be unique. Return data, not code.
 """
-        response = provider.generate_json(prompt, EXAMPLES_SCHEMA, seed + 1009 * (offset + 1))
-        payload = _ExamplesPayload.model_validate(response.content)
-        part = _normalize_generated_count(
-            _rows(payload.examples, task, split, split[:4], provider.model), task, count
+        part, part_records = _collect_examples(
+            provider,
+            task,
+            count,
+            split,
+            split[:4],
+            prompt,
+            seed + 1009 * (offset + 1),
+            "benchmark",
         )
-        _validate_generated(part, task, count)
         rows.extend(part)
-        records.append(_generation_record(response, "benchmark"))
+        records.extend(part_records)
     merged_prompt_hash = hashlib.sha256(
         "".join(x.prompt_sha256 for x in records).encode()
     ).hexdigest()
@@ -265,6 +266,78 @@ def _validate_generated(rows: list[Example], task: TaskSpec, expected: int) -> N
             raise ValueError("every paraphrase pair_id must identify at least two examples")
         if any(len({row.label for row in values}) != 1 for values in pairs.values()):
             raise ValueError("paraphrases in a pair must have the same label")
+
+
+def _collect_examples(
+    provider: LLMProvider,
+    task: TaskSpec,
+    count: int,
+    split: str,
+    prefix: str,
+    prompt: str,
+    seed: int,
+    role: str,
+    max_attempts: int = 4,
+) -> tuple[list[Example], list[GenerationRecord]]:
+    values: list[_GeneratedExample] = []
+    records: list[GenerationRecord] = []
+    last_error: ValueError | None = None
+    for attempt in range(max_attempts):
+        attempt_prompt = prompt
+        if attempt:
+            attempt_prompt += f"""
+
+The previous independent batch was incomplete. Produce a fresh complete batch of exactly {count}
+examples. Do not summarize, group, or replace the examples with a single representative item.
+This is recovery attempt {attempt + 1} of {max_attempts}.
+"""
+        response = provider.generate_json(attempt_prompt, EXAMPLES_SCHEMA, seed + attempt * 104_729)
+        payload = _ExamplesPayload.model_validate(response.content)
+        batch = payload.examples
+        if split == "paraphrase":
+            batch = [
+                row.model_copy(
+                    update={"pair_id": f"attempt-{attempt}-{row.pair_id}" if row.pair_id else None}
+                )
+                for row in batch
+            ]
+        values.extend(batch)
+        records.append(_generation_record(response, role))
+        candidate = _deduplicate_generated_rows(_rows(values, task, split, prefix, provider.model))
+        if split == "paraphrase":
+            groups: dict[str, list[Example]] = {}
+            for row in candidate:
+                if row.pair_id:
+                    groups.setdefault(row.pair_id, []).append(row)
+            candidate = [
+                row
+                for group in groups.values()
+                if len(group) >= 2 and len({row.label for row in group}) == 1
+                for row in group
+            ]
+        try:
+            candidate = _normalize_generated_count(candidate, task, count)
+            _validate_generated(candidate, task, count)
+            return candidate, records
+        except ValueError as exc:
+            if "unknown labels" in str(exc):
+                raise
+            last_error = exc
+    raise ValueError(
+        f"provider could not supply {count} valid {split} examples after {max_attempts} attempts: "
+        f"{last_error}"
+    )
+
+
+def _deduplicate_generated_rows(rows: list[Example]) -> list[Example]:
+    seen: set[str] = set()
+    unique: list[Example] = []
+    for row in rows:
+        key = normalize_text(row.input)
+        if key not in seen:
+            unique.append(row)
+            seen.add(key)
+    return unique
 
 
 def _normalize_generated_count(rows: list[Example], task: TaskSpec, expected: int) -> list[Example]:
