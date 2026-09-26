@@ -69,7 +69,7 @@ available for every other specialization.
 If you find the idea useful, consider starring the repository—it helps more people discover and
 test the approach.
 
-[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/Hantlowt)
+<a href="https://www.buymeacoffee.com/Hantlowt"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="36"></a>
 
 ## What Laya Studio tests
 
