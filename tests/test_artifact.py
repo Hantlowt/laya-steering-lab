@@ -1,7 +1,7 @@
 import pytest
 
-from laya_steering.artifact import SpecializedLaya, export_specialization, verify_fidelity
-from laya_steering.strategies import PrototypeStrategy
+from laya_studio.artifact import SpecializedLaya, export_specialization, verify_fidelity
+from laya_studio.strategies import PrototypeStrategy
 
 
 def test_export_reload_fidelity_and_deterministic_tensors(

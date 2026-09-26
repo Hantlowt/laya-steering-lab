@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from laya_steering.io import load_suite
+from laya_studio.io import load_suite
 
 
 def test_incomplete_suite_has_clear_error(tmp_path):

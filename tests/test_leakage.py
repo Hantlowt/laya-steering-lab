@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from laya_steering.generation import remove_generated_leakage
-from laya_steering.io import load_suite, validate_no_leakage
-from laya_steering.schemas import Example
+from laya_studio.generation import remove_generated_leakage
+from laya_studio.io import load_suite, validate_no_leakage
+from laya_studio.schemas import Example
 
 
 def test_cross_split_normalized_duplicate_is_rejected():

@@ -4,11 +4,11 @@ import stat
 import pytest
 from fastapi.testclient import TestClient
 
-from laya_steering.dashboard import create_app
-from laya_steering.generation import infer_task
-from laya_steering.providers import StaticProvider
-from laya_steering.store import ExperimentStore, now_iso
-from laya_steering.studio import ProviderConfig, StudioService
+from laya_studio.dashboard import create_app
+from laya_studio.generation import infer_task
+from laya_studio.providers import StaticProvider
+from laya_studio.store import ExperimentStore, now_iso
+from laya_studio.studio import ProviderConfig, StudioService
 
 
 def test_studio_shell_and_assets(tmp_path):

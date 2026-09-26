@@ -25,10 +25,10 @@ dashboard = ["fastapi>=0.110,<1", "uvicorn>=0.27,<1"]
 dev = ["pytest>=8,<9", "pytest-cov>=5,<7", "ruff>=0.12,<1", "httpx>=0.28,<1"]
 
 [project.scripts]
-laya-studio = "laya_steering.cli:app"
+laya-studio = "laya_studio.cli:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/laya_steering"]
+packages = ["src/laya_studio"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

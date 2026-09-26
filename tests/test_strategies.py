@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from laya_steering.strategies import ContrastiveVectorStrategy, PrototypeStrategy, normalize
+from laya_studio.strategies import ContrastiveVectorStrategy, PrototypeStrategy, normalize
 
 
 def test_normalize_and_mean_prototypes(binary_task, rows, fake_backend):

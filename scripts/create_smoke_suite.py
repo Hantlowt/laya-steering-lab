@@ -5,8 +5,8 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from laya_steering.io import save_suite
-from laya_steering.schemas import DecisionSchema, Example, GenerationRecord, SuiteManifest, TaskSpec
+from laya_studio.io import save_suite
+from laya_studio.schemas import DecisionSchema, Example, GenerationRecord, SuiteManifest, TaskSpec
 
 TASKS = [
     (

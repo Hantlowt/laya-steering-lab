@@ -323,7 +323,7 @@ def _fresh_process_fidelity(path: Path, backend_name: str) -> None:
     env = os.environ.copy()
     src = str(Path(__file__).resolve().parents[1])
     env["PYTHONPATH"] = src + os.pathsep + env.get("PYTHONPATH", "")
-    command = [sys.executable, "-m", "laya_steering.fidelity", str(path), "--backend", backend_name]
+    command = [sys.executable, "-m", "laya_studio.fidelity", str(path), "--backend", backend_name]
     result = subprocess.run(command, text=True, capture_output=True, env=env, timeout=300)
     if result.returncode:
         raise AssertionError(
@@ -343,7 +343,7 @@ Portable Laya specialization artifact (format version {manifest.format_version})
 - License: {manifest.license or "See base model metadata"}
 
 ```python
-from laya_steering import SpecializedLaya
+from laya_studio import SpecializedLaya
 agent = SpecializedLaya.from_pretrained(".")
 result = agent.predict("your input")
 ```

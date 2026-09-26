@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from laya_steering.backends import FakeBackend
-from laya_steering.schemas import DecisionSchema, Example, TaskSpec
+from laya_studio.backends import FakeBackend
+from laya_studio.schemas import DecisionSchema, Example, TaskSpec
 
 
 @pytest.fixture

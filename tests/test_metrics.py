@@ -1,6 +1,6 @@
 import pytest
 
-from laya_steering.metrics import classification_metrics, option_order_instability, paired_summary
+from laya_studio.metrics import classification_metrics, option_order_instability, paired_summary
 
 
 def test_metrics_known_values():

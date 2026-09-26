@@ -1,7 +1,7 @@
 import pytest
 
-from laya_steering.generation import generate_specialization
-from laya_steering.providers import StaticProvider, _decode_json_content
+from laya_studio.generation import generate_specialization
+from laya_studio.providers import StaticProvider, _decode_json_content
 
 
 def test_llm_response_unknown_label_rejected(binary_task):

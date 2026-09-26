@@ -1,6 +1,6 @@
 import numpy as np
 
-from laya_steering.backends import LayaBackend, task_question
+from laya_studio.backends import LayaBackend, task_question
 
 
 def test_fake_backend_contract(binary_task, fake_backend):

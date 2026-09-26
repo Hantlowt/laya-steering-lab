@@ -207,7 +207,7 @@ support-priority-laya/
 Load it with minimal application changes:
 
 ```python
-from laya_steering import SpecializedLaya
+from laya_studio import SpecializedLaya
 
 agent = SpecializedLaya.from_pretrained("./exports/support-priority-laya")
 result = agent.predict("Production is down for every customer")
@@ -238,15 +238,15 @@ metrics, timings, seeds, environment and Git commit. The adjacent run directory 
 specialization matrices and skips. Use multiple generated suites and repeated seeds; a single
 improved task is not evidence of a general effect.
 
-To add a strategy, subclass `Strategy` in `src/laya_steering/strategies.py`, implement `fit`, declare
+To add a strategy, subclass `Strategy` in `src/laya_studio/strategies.py`, implement `fit`, declare
 the final `decision_component`, return JSON metadata plus named arrays, register its CLI name, and
 add export/reload fidelity coverage. `fit` must not accept a hidden split.
 
 To add an LLM provider, implement `LLMProvider.generate_json` in
-`src/laya_steering/providers.py`. Preserve strict JSON validation, raw-response caching,
+`src/laya_studio/providers.py`. Preserve strict JSON validation, raw-response caching,
 provider/model/seed provenance, and the specialization/benchmark boundary. Never execute output.
 
-To add a Laya runtime, implement `LayaBackend` in `src/laya_steering/backends.py`. Batch embeddings
+To add a Laya runtime, implement `LayaBackend` in `src/laya_studio/backends.py`. Batch embeddings
 and decisions wherever possible. Only advertise activation steering if a stable, inspectable
 intervention before the original decision head exists.
 
