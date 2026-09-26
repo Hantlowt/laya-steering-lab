@@ -242,7 +242,7 @@ def serve(
     try:
         import uvicorn
     except ImportError as exc:
-        raise typer.BadParameter("install laya-steering-lab[dashboard]") from exc
+        raise typer.BadParameter("install laya-studio[dashboard]") from exc
     uvicorn.run(create_app(database), host=host, port=port)
 
 

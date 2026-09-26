@@ -1,14 +1,14 @@
 # Laya Studio
 
-`laya-studio` is a reproducible research framework and user-friendly local studio for testing
-whether a frozen
-[Laya](https://github.com/NandhaKishorM/laya) decision model can be specialized to new domains
-without backpropagation or weight fine-tuning. It compares Laya's original typed decision head to
+**Specialize Laya for a new domain in minutes—without fine-tuning, gradient training, or a large
+GPU machine.**
+
+`laya-studio` is a reproducible research framework and user-friendly local studio. Describe the
+behavior you want in natural language; it generates synthetic examples, builds training-free
+specializations over a frozen [Laya](https://github.com/NandhaKishorM/laya) model, independently
+benchmarks them, and exports the best result. It compares Laya's original typed decision head to
 prompt changes, embedding-space classifiers and transforms, and—where the runtime safely permits
 it—actual hidden-state intervention.
-
-The Python distribution remains named `laya-steering-lab` for package compatibility, while the
-application and repository are named **Laya Studio**.
 
 This is an experiment harness, not a claim that steering works. Negative and unstable results are
 retained alongside positive ones.
@@ -101,7 +101,7 @@ export LAYA_LAB_LLM_API_KEY=...
 export LAYA_LAB_SPECIALIZATION_MODEL=model-a
 export LAYA_LAB_BENCHMARK_MODEL=model-b
 
-laya-lab generate \
+laya-studio generate \
   --domains 10 --tasks-per-domain 5 \
   --specialization-examples 40 --test-examples 300 \
   --style-control-model model-c \
@@ -115,7 +115,7 @@ Run all methods on exactly the same suite. Unsupported method/task combinations 
 skip artifacts:
 
 ```bash
-laya-lab benchmark \
+laya-studio benchmark \
   --suite benchmarks/research/seed-100 \
   --methods baseline,prompt_only,nearest_prototype,contrastive_vector,multiclass_centroids,whitened_prototypes,residual_embedding_transform,activation_steering,multi_vector_steering,pairwise_ranking \
   --seeds 11,22,33
@@ -129,7 +129,7 @@ On PyTorch, use names such as `activation_steering@0`, `activation_steering@11`,
 The simplest workflow is the local interface:
 
 ```bash
-laya-lab serve
+laya-studio serve
 ```
 
 Open `http://127.0.0.1:8787`, then:
@@ -158,15 +158,15 @@ endpoint/model can be configured in the policy step.
 For scripted workflows, inspect paired statistics and a held-out domain:
 
 ```bash
-laya-lab report RUN_ID --bootstrap-samples 10000
-laya-lab report RUN_ID --holdout-domain smart_home
-laya-lab compare RUN_A RUN_B
+laya-studio report RUN_ID --bootstrap-samples 10000
+laya-studio report RUN_ID --holdout-domain smart_home
+laya-studio compare RUN_A RUN_B
 ```
 
 ## One-off specialization
 
 ```bash
-laya-lab specialize \
+laya-studio specialize \
   --task "Prioritize technical support tickets" \
   --labels URGENT,NORMAL,IGNORE \
   --examples 50 --method multi_vector_steering \
@@ -217,8 +217,8 @@ result = agent.predict("Production is down for every customer")
 Export a specialization retained by a benchmark run:
 
 ```bash
-laya-lab export 'RUN_ID:TASK_NAME:STRATEGY' --output exports/my-laya
-laya-lab export 'RUN_ID:TASK_NAME:STRATEGY' --output exports/portable --self-contained
+laya-studio export 'RUN_ID:TASK_NAME:STRATEGY' --output exports/my-laya
+laya-studio export 'RUN_ID:TASK_NAME:STRATEGY' --output exports/portable --self-contained
 ```
 
 `--self-contained` accepts only a resolved local checkpoint directory and copies it into the bundle;
@@ -230,7 +230,7 @@ attribution fields. Verify redistribution is allowed by the checkpoint's license
 Suites are ordinary files. Re-run without contacting the LLM:
 
 ```bash
-laya-lab benchmark --suite benchmarks/my-suite --backend pytorch --seed 42
+laya-studio benchmark --suite benchmarks/my-suite --backend pytorch --seed 42
 ```
 
 SQLite records the model identifier/revision when available, backend, task, suite, parameters,
@@ -262,7 +262,7 @@ Run the missing real-checkpoint experiment exactly with:
 
 ```bash
 pip install -e '.[pytorch]'
-laya-lab benchmark --suite benchmarks/smoke --backend pytorch \
+laya-studio benchmark --suite benchmarks/smoke --backend pytorch \
   --model convaiinnovations/laya --seed 17
 ```
 
@@ -270,7 +270,7 @@ On Apple Silicon:
 
 ```bash
 pip install -e '.[mlx]'
-laya-lab benchmark --suite benchmarks/smoke --backend mlx \
+laya-studio benchmark --suite benchmarks/smoke --backend mlx \
   --model aac6fef/laya-mlx --seed 17
 ```
 

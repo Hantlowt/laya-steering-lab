@@ -3,13 +3,13 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "laya-steering-lab"
+name = "laya-studio"
 version = "0.1.0"
 description = "Leakage-resistant, training-free specialization experiments for frozen Laya models"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
-authors = [{name = "Laya Steering Lab contributors"}]
+authors = [{name = "Laya Studio contributors"}]
 dependencies = [
   "numpy>=1.26,<3",
   "pydantic>=2.7,<3",
@@ -25,7 +25,7 @@ dashboard = ["fastapi>=0.110,<1", "uvicorn>=0.27,<1"]
 dev = ["pytest>=8,<9", "pytest-cov>=5,<7", "ruff>=0.12,<1", "httpx>=0.28,<1"]
 
 [project.scripts]
-laya-lab = "laya_steering.cli:app"
+laya-studio = "laya_steering.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/laya_steering"]

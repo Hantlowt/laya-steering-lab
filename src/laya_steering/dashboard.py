@@ -24,7 +24,7 @@ def create_app(database: Path):
         from fastapi.responses import FileResponse, HTMLResponse, Response
         from fastapi.staticfiles import StaticFiles
     except ImportError as exc:
-        raise RuntimeError("install laya-steering-lab[dashboard] to use the dashboard") from exc
+        raise RuntimeError("install laya-studio[dashboard] to use the dashboard") from exc
 
     app = FastAPI(title="Laya Studio", docs_url="/api/docs", redoc_url=None)
     store = ExperimentStore(database)
