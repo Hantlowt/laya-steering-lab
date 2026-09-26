@@ -69,6 +69,8 @@ available for every other specialization.
 If you find the idea useful, consider starring the repository—it helps more people discover and
 test the approach.
 
+[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/Hantlowt)
+
 ## What Laya Studio tests
 
 Laya's encoder may already organize task-relevant information in its latent space. Laya Studio
