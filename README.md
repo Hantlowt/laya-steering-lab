@@ -10,6 +10,8 @@ benchmarks them, and exports the best result. It compares Laya's original typed 
 prompt changes, embedding-space classifiers and transforms, and—where the runtime safely permits
 it—actual hidden-state intervention.
 
+![Laya Studio specialization creation interface](docs/assets/laya-studio-create.png)
+
 This is an experiment harness, not a claim that steering works. Negative and unstable results are
 retained alongside positive ones.
 
